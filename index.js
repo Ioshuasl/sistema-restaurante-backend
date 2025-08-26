@@ -16,7 +16,7 @@ import dashboardRoutes from "./routes/dashboardRoutes.js"
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT
+const PORT = process.env.PORT || 8080
 
 //middleware para processar corpos de requisicao json
 app.use(express.json())
