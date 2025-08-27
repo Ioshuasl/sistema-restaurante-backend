@@ -37,6 +37,12 @@ EXPOSE 3000
 
 # Adiciona um usuário não-root para executar a aplicação por motivos de segurança.
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Cria o diretório de uploads
+RUN mkdir -p /app/public/uploads && \
+    # Dá a posse do diretório ao usuário da aplicação
+    chown -R appuser:appgroup /app/public/uploads
+
 USER appuser
 
 # Define o comando padrão para iniciar a aplicação quando o contêiner for executado.
