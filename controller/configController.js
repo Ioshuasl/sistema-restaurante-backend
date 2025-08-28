@@ -9,10 +9,10 @@ class ConfigController {
             const [config, created] = await Config.findOrCreate({
                 where: { id: id },
                 defaults: {
-                    cnpj: '00.000.000/0000-00',
+                    cnpj: '00000000000000',
                     razaoSocial: 'NOME DA SUA EMPRESA',
                     nomeFantasia: 'NOME FANTASIA',
-                    cep: '00000-000',
+                    cep: '00000000',
                     tipoLogadouro: 'Rua',
                     logadouro: 'Endereço Principal',
                     numero: 'S/N',
@@ -21,7 +21,7 @@ class ConfigController {
                     bairro: 'Centro',
                     cidade: 'Sua Cidade',
                     estado: 'UF',
-                    telefone: '(00) 00000-0000',
+                    telefone: '00000000000',
                     email: 'contato@suaempresa.com',
                     taxaEntrega: 0.00
                 }

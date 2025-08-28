@@ -11,11 +11,29 @@ class UserController {
     async createUser({ nome, cargo_id, username, password }) {
 
         console.log("senha sem criptografia: ", password)
-        const saltRounds = 10
-        const hashedPassword = await bcrypt.hash(password, saltRounds)
-        console.log("senha criptografada: ", hashedPassword)
 
         try {
+
+            const existingUser = await Users.findOne({
+                where: {
+                    [Op.or]: [
+                        { username: username },
+                        { nome: nome }
+                    ]
+                }
+            });
+
+            if (existingUser) {
+                return {
+                    message: 'Nome ou username já estão em uso. Por favor, escolha outros.',
+                    error: 'DUPLICATE_USER'
+                };
+            }
+
+            const saltRounds = 10
+            const hashedPassword = await bcrypt.hash(password, saltRounds)
+            console.log("senha criptografada: ", hashedPassword)
+
             const user = await Users.create({ nome, cargo_id, username, password: hashedPassword })
             console.log(user)
             return { message: 'Usuário criado com sucesso', user }
@@ -44,7 +62,7 @@ class UserController {
             const user = await Users.findByPk(id)
             return user
         } catch (error) {
-            console.error
+            console.error(error)
             return { message: "Erro ao tentar executar a função", error }
         }
     }
@@ -52,12 +70,27 @@ class UserController {
     //funcao para atualizar um usuario
     async updateUser(id, updatedData) {
         try {
+
+            if (updatedData.password) {
+                const saltRounds = 10;
+                updatedData.password = await bcrypt.hash(updatedData.password, saltRounds);
+            }
+
             const user = await Users.update(updatedData, {
                 where: {
                     id: id
                 }
             })
-            return { message: 'Usuário atualizado com sucesso', user }
+
+            const updatedUser = await Users.findByPk(id, {
+                include: [Cargo]
+            });
+            console.log(user)
+            return {
+                message: 'Usuário atualizado com sucesso',
+                user,
+                updatedUser
+            }
         } catch (error) {
             console.error(error)
             return { message: "Erro ao tentar executar a função", error }
@@ -95,9 +128,9 @@ class UserController {
             }
 
             const isPasswordMatch = await bcrypt.compare(password, user.password);
-            
+
             console.log("passowrd match? ", isPasswordMatch)
-            
+
             if (!isPasswordMatch) {
                 throw new Error("Credenciais inválidas");
             } else {
