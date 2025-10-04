@@ -1,5 +1,6 @@
 import CategoriaProduto from "../models/categoriaProdutoModels.js"
 import Produto from "../models/produtoModels.js"
+import SubProduto from "../models/subProdutoModels.js";
 
 Produto.belongsTo(CategoriaProduto, { foreignKey: 'categoriaProduto_id'});
 CategoriaProduto.hasMany(Produto, { foreignKey: 'categoriaProduto_id' })
@@ -13,6 +14,13 @@ class MenuController{
                     model: Produto,
                     where: {
                         isAtivo: true
+                    },
+                    include: {
+                        model: SubProduto,
+                        where: {
+                            isAtivo: true
+                        },
+                        required: false
                     }
                 }
             })

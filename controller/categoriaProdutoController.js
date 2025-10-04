@@ -1,8 +1,12 @@
 import CategoriaProduto from "../models/categoriaProdutoModels.js"
 import Produto from "../models/produtoModels.js"
+import SubProduto from "../models/subProdutoModels.js";
 
-Produto.belongsTo(CategoriaProduto, { foreignKey: 'categoriaProduto_id'});
+Produto.belongsTo(CategoriaProduto, { foreignKey: 'categoriaProduto_id' });
 CategoriaProduto.hasMany(Produto, { foreignKey: 'categoriaProduto_id' })
+
+Produto.hasMany(SubProduto, { foreignKey: 'produto_id' });
+SubProduto.belongsTo(Produto, { foreignKey: 'produto_id' });
 
 class CategoriaProdutoController {
 
@@ -10,7 +14,7 @@ class CategoriaProdutoController {
     async createCategoriaProduto(nomeCategoriaProduto) {
         console.log(nomeCategoriaProduto)
         try {
-            const categoriaProduto = await CategoriaProduto.create({nomeCategoriaProduto})
+            const categoriaProduto = await CategoriaProduto.create({ nomeCategoriaProduto })
             return { message: "Categoria de produto criado com sucesso", categoriaProduto }
         } catch (error) {
             console.error(error)
@@ -22,7 +26,10 @@ class CategoriaProdutoController {
     async findAllCategoriaProdutos() {
         try {
             const categoriaProdutos = await CategoriaProduto.findAll({
-                include: [Produto]
+                include: [{
+                    model: Produto,          
+                    include: [SubProduto]
+                }]
             })
             return categoriaProdutos
         } catch (error) {

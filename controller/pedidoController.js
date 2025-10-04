@@ -4,18 +4,29 @@ import Produto from '../models/produtoModels.js';
 import ItemPedido from '../models/itemPedidoModels.js';
 import FormaPagamento from "../models/formaPagamentoModels.js"
 import formaPagamentoController from './formaPagamentoController.js';
+import SubItemPedido from '../models/SubItemPedidoModels.js';
 import { Sequelize, Op, fn, col, where, literal } from 'sequelize';
+import SubProduto from '../models/subProdutoModels.js';
 
-Pedido.belongsTo(FormaPagamento, { foreignKey: 'formaPagamento_id' })
-FormaPagamento.hasMany(Pedido, { foreignKey: 'formaPagamento_id' })
+// Relação FormaPagamento <-> Pedido
+Pedido.belongsTo(FormaPagamento, { foreignKey: 'formaPagamento_id' });
+FormaPagamento.hasMany(Pedido, { foreignKey: 'formaPagamento_id' });
 
-// O Pedido tem muitos Itens de Pedido
-Pedido.hasMany(ItemPedido, { foreignKey: 'pedidoId' });
+// Relação Pedido <-> ItemPedido
+Pedido.hasMany(ItemPedido, { foreignKey: 'pedidoId', as: 'itensPedido' });
 ItemPedido.belongsTo(Pedido, { foreignKey: 'pedidoId' });
 
-// O Produto está em muitos Itens de Pedido
+// Relação Produto <-> ItemPedido
 Produto.hasMany(ItemPedido, { foreignKey: 'produtoId' });
 ItemPedido.belongsTo(Produto, { foreignKey: 'produtoId' });
+
+// Relação ItemPedido <-> SubItemPedido
+ItemPedido.hasMany(SubItemPedido, { foreignKey: 'itemPedidoId', as: 'subItensPedido' });
+SubItemPedido.belongsTo(ItemPedido, { foreignKey: 'itemPedidoId' });
+
+// Relação SubProduto <-> SubItemPedido
+SubProduto.hasMany(SubItemPedido, { foreignKey: 'subProdutoId' });
+SubItemPedido.belongsTo(SubProduto, { foreignKey: 'subProdutoId' });
 
 class PedidoController {
 
@@ -38,23 +49,21 @@ class PedidoController {
         estadoCliente,
         taxaentrega
     }) {
-        // Inicia uma transação gerenciada pelo Sequelize
         const t = await sequelize.transaction();
 
         try {
-            console.log(formaPagamento_id)
-            const formaPagamento = await FormaPagamento.findByPk(formaPagamento_id)
-            console.log(formaPagamento)
+            // 1. Validação da forma de pagamento
+            const formaPagamento = await FormaPagamento.findByPk(formaPagamento_id);
             if (!formaPagamento) {
-                throw new Error('Forma de pagamento não encontrada ou inválida.');
+                throw new Error("Forma de pagamento não encontrada ou inválida.");
             }
 
-            // Valida se a lista de produtos foi enviada e não está vazia
+            // 2. Validação da lista de produtos
             if (!produtosPedido || produtosPedido.length === 0) {
-                throw new Error('O pedido deve conter pelo menos um item.');
+                throw new Error("O pedido deve conter pelo menos um produto.");
             }
 
-            // Passo 2: Criar o registro principal do Pedido (cabeçalho)
+            // 3. Criação do pedido principal
             const pedido = await Pedido.create({
                 formaPagamento_id,
                 isRetiradaEstabelecimento,
@@ -70,52 +79,70 @@ class PedidoController {
                 bairroCliente,
                 cidadeCliente,
                 estadoCliente,
-                valorTotalPedido: 0 // Valor inicial provisório
-            }, {
-                transaction: t
-            });
+                valorTotalPedido: 0
+            }, { transaction: t });
 
             let valorTotalCalculado = 0;
 
-            // Passo 3: Iterar sobre a lista 'produtosPedido'
+            // 4. Loop dos produtos
             for (const item of produtosPedido) {
                 const produto = await Produto.findByPk(item.produtoId);
                 if (!produto || !produto.isAtivo) {
-                    throw new Error(`Produto com ID ${item.produtoId} não encontrado ou está inativo.`);
+                    throw new Error(`Produto com ID ${item.produtoId} não encontrado ou inativo.`);
                 }
 
-                const precoUnitario = produto.valorProduto;
-                valorTotalCalculado += precoUnitario * item.quantidade;
+                const precoProduto = produto.valorProduto;
+                const subtotalProduto = precoProduto * item.quantidade;
+                valorTotalCalculado += subtotalProduto;
 
-                await ItemPedido.create({
+                const itemPedido = await ItemPedido.create({
                     pedidoId: pedido.id,
                     produtoId: item.produtoId,
                     quantidade: item.quantidade,
-                    precoUnitario: precoUnitario
-                }, {
-                    transaction: t
-                });
+                    precoUnitario: precoProduto
+                }, { transaction: t });
+
+                // 5. Subprodutos vinculados a esse item
+                if (item.subProdutos && item.subProdutos.length > 0) {
+                    for (const sub of item.subProdutos) {
+                        const subProduto = await SubProduto.findByPk(sub.subProdutoId);
+                        if (!subProduto || !subProduto.isAtivo) {
+                            throw new Error(`Subproduto com ID ${sub.subProdutoId} não encontrado ou inativo.`);
+                        }
+
+                        const precoSub = subProduto.valorSubProduto;
+                        const subtotalSub = precoSub * sub.quantidade;
+                        valorTotalCalculado += subtotalSub;
+
+                        await SubItemPedido.create({
+                            itemPedidoId: itemPedido.id,
+                            subProdutoId: sub.subProdutoId,
+                            quantidade: sub.quantidade,
+                            precoUnitario: precoSub
+                        }, { transaction: t });
+                    }
+                }
             }
 
-            // Passo 4: Atualizar o pedido com o valor total final
-            pedido.valorTotalPedido = valorTotalCalculado + taxaentrega;
-            await pedido.save({
-                transaction: t
-            });
+            // 6. Adiciona taxa de entrega
+            valorTotalCalculado += taxaentrega;
 
-            // Passo 5: Se tudo deu certo, confirma a transação
+            // 7. Atualiza total do pedido
+            pedido.valorTotalPedido = valorTotalCalculado;
+            await pedido.save({ transaction: t });
+
+            // 8. Confirma a transação
             await t.commit();
 
             return pedido;
 
         } catch (error) {
-            // Passo 6: Se qualquer passo falhou, desfaz todas as operações
             await t.rollback();
-
             console.error("Erro ao criar pedido:", error.message);
-            throw new Error(`Não foi possível criar o pedido: ${error.message}`);
+            throw new Error(`Erro ao criar pedido: ${error.message}`);
         }
     }
+
 
     //funcao para encontrar e contar todos os pedidos cadastrados na aplicacao
     async findAndCountAllPedidos() {
@@ -123,10 +150,23 @@ class PedidoController {
             const pedidos = await Pedido.findAndCountAll({
                 include: [{
                     model: ItemPedido,
-                    include: [{
-                        model: Produto,
-                        attributes: ['nomeProduto']
-                    }]
+                    as: 'itensPedido',  // use o alias correto
+                    include: [
+                        {
+                            model: Produto,
+                            attributes: ['nomeProduto']
+                        },
+                        {
+                            model: SubItemPedido,
+                            as: 'subItensPedido',  // alias para subItensPedido
+                            include: [
+                                {
+                                    model: SubProduto,
+                                    attributes: ['nomeSubProduto']
+                                }
+                            ]
+                        }
+                    ]
                 }]
             })
             return pedidos
@@ -142,10 +182,23 @@ class PedidoController {
             const pedidos = await Pedido.findAll({
                 include: [{
                     model: ItemPedido,
-                    include: [{
-                        model: Produto,
-                        attributes: ['nomeProduto']
-                    }]
+                    as: 'itensPedido',  // use o alias correto
+                    include: [
+                        {
+                            model: Produto,
+                            attributes: ['nomeProduto']
+                        },
+                        {
+                            model: SubItemPedido,
+                            as: 'subItensPedido',  // alias para subItensPedido
+                            include: [
+                                {
+                                    model: SubProduto,
+                                    attributes: ['nomeSubProduto']
+                                }
+                            ]
+                        }
+                    ]
                 }]
             })
             return pedidos
@@ -166,28 +219,28 @@ class PedidoController {
 
     // CORREÇÃO: Usando a função EXTRACT() do PostgreSQL
     async getMonthlyRevenue(year, month) {
-    try {
-        const result = await Pedido.findOne({
-            attributes: [
-                [fn('SUM', col('valorTotalPedido')), 'totalRevenue']
-            ],
-            where: {
-                [Op.and]: [
-                    where(literal('EXTRACT(YEAR FROM "createdAt")'), Number(year)),
-                    where(literal('EXTRACT(MONTH FROM "createdAt")'), Number(month))
-                ]
-            },
-            raw: true // retorna objeto simples
-        });
+        try {
+            const result = await Pedido.findOne({
+                attributes: [
+                    [fn('SUM', col('valorTotalPedido')), 'totalRevenue']
+                ],
+                where: {
+                    [Op.and]: [
+                        where(literal('EXTRACT(YEAR FROM "createdAt")'), Number(year)),
+                        where(literal('EXTRACT(MONTH FROM "createdAt")'), Number(month))
+                    ]
+                },
+                raw: true // retorna objeto simples
+            });
 
-        const totalRevenue = parseFloat(result.totalRevenue) || 0;
+            const totalRevenue = parseFloat(result.totalRevenue) || 0;
 
-        return { totalRevenue };
-    } catch (error) {
-        console.error(error);
-        return { message: "Erro ao tentar calcular o rendimento mensal", error };
+            return { totalRevenue };
+        } catch (error) {
+            console.error(error);
+            return { message: "Erro ao tentar calcular o rendimento mensal", error };
+        }
     }
-}
 
     // CORREÇÃO: Usando a função DATE_TRUNC, que é compatível com PostgreSQL
     async getMonthlyOrderCounts() {
