@@ -17,7 +17,7 @@ const SubProduto = sequelize.define("subprodutos", {
         type: DataTypes.BOOLEAN,
         defaultValue: true
     },
-    valorAdicional: { // opcional, caso algum subproduto tenha custo extra
+    valorAdicional: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true
     },

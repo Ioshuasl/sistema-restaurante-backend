@@ -10,11 +10,12 @@
   "author": "Ioshua Souza Lopes",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Ioshuasl/sistema-restaurante.git"
+    "url": "https://github.com/Ioshuasl/sistema-restaurante-backend.git"
   },
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",

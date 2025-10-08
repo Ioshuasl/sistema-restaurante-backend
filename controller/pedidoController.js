@@ -47,7 +47,7 @@ class PedidoController {
         bairroCliente,
         cidadeCliente,
         estadoCliente,
-        taxaentrega
+        taxaEntrega
     }) {
         const t = await sequelize.transaction();
 
@@ -91,9 +91,10 @@ class PedidoController {
                     throw new Error(`Produto com ID ${item.produtoId} não encontrado ou inativo.`);
                 }
 
-                const precoProduto = produto.valorProduto;
+                const precoProduto = Number(produto.valorProduto);
                 const subtotalProduto = precoProduto * item.quantidade;
                 valorTotalCalculado += subtotalProduto;
+                console.log(valorTotalCalculado)
 
                 const itemPedido = await ItemPedido.create({
                     pedidoId: pedido.id,
@@ -110,22 +111,24 @@ class PedidoController {
                             throw new Error(`Subproduto com ID ${sub.subProdutoId} não encontrado ou inativo.`);
                         }
 
-                        const precoSub = subProduto.valorSubProduto;
+                        const precoSub = Number(subProduto.valorAdicional) || 0;
                         const subtotalSub = precoSub * sub.quantidade;
                         valorTotalCalculado += subtotalSub;
+                        console.log(valorTotalCalculado)
 
                         await SubItemPedido.create({
                             itemPedidoId: itemPedido.id,
                             subProdutoId: sub.subProdutoId,
                             quantidade: sub.quantidade,
-                            precoUnitario: precoSub
+                            precoAdicional: precoSub
                         }, { transaction: t });
                     }
                 }
             }
 
             // 6. Adiciona taxa de entrega
-            valorTotalCalculado += taxaentrega;
+            console.log("Valor da entrega", taxaEntrega, "Tipo do atributo taxa de entrega", typeof(taxaEntrega))
+            valorTotalCalculado += Number(taxaEntrega);
 
             // 7. Atualiza total do pedido
             pedido.valorTotalPedido = valorTotalCalculado;
@@ -167,8 +170,9 @@ class PedidoController {
                             ]
                         }
                     ]
-                }]
-            })
+                }],
+                order: [['id', 'DESC']]  // Ordena por ID de forma decrescente
+            });
             return pedidos
         } catch (error) {
             console.error(error)
@@ -201,6 +205,7 @@ class PedidoController {
                     ]
                 }]
             })
+            console.log(pedidos)
             return pedidos
         } catch (error) {
             console.error(error)
