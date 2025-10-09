@@ -94,10 +94,31 @@ const Config = sequelize.define('config', {
             isDecimal: true,
             min: 0
         }
-    }
+    },
+    evolutionInstanceName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: '',
+        validate: {
+            notEmpty: {
+                msg: "O nome da instância da Evolution API não pode ser vazio."
+            }
+        }
+    },
+    urlAgenteImpressao: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "URL base do agente local de impressão (ex: http://192.168.0.105:4000)"
+    },
+
+        nomeImpressora: {
+        type: DataTypes.STRING,
+        allowNull: true, // Pode começar nulo até o usuário configurar
+        comment: "Nome da impressora local detectada pelo agente de impressão"
+    },
 }, {
     tableName: 'config',
-    timestamps: true 
+    timestamps: true
 });
 
 export default Config;

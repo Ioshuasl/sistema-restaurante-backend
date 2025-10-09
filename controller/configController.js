@@ -2,8 +2,7 @@ import Config from "../models/configModels.js";
 
 class ConfigController {
 
-    //função para encontrar as configurações/parâmetros do sistema
-    // se as configurações/parametros não tiver sido criado ainda, será criado com valores default
+    // Função para encontrar ou criar a configuração/parâmetros do sistema
     async getOrCreateConfig(id) {
         try {
             const [config, created] = await Config.findOrCreate({
@@ -23,41 +22,45 @@ class ConfigController {
                     estado: 'UF',
                     telefone: '00000000000',
                     email: 'contato@suaempresa.com',
-                    taxaEntrega: 0.00
+                    taxaEntrega: 0.00,
+                    evolutionInstanceName: 'Nome da sua Instancia da Evolution Api',
+                    urlAgenteImpressao: "http://localhost:4000",
+                    nomeImpressora: "Microsoft Print to PDF"
+                    
                 }
-            })
+            });
 
             if (created) {
-                console.log("Registro de configuração inicial criado com sucesso")
+                console.log("Registro de configuração inicial criado com sucesso");
             }
 
-            return config
+            return config;
 
         } catch (error) {
-            console.error(error)
-            return error
+            console.error(error);
+            return error;
         }
     }
 
-    //função para atualizar configuração do sistema/parâmetros
+    // Função para atualizar configuração do sistema/parâmetros
     async updateConfig(id, updatedData) {
         try {
-            const config = await Config.findByPk(id)
+            const config = await Config.findByPk(id);
 
             if (!config) {
-                throw new Error("Registro de configuração não encontrado através do id.")
+                throw new Error("Registro de configuração não encontrado através do id.");
             }
 
-            const updatedConfig = await config.update(updatedData)
+            const updatedConfig = await config.update(updatedData);
 
-            return updatedConfig
+            return updatedConfig;
 
         } catch (error) {
-            console.error(error)
-            return error
+            console.error(error);
+            return error;
         }
     }
 
 }
 
-export default new ConfigController()
+export default new ConfigController();

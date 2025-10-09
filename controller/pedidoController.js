@@ -3,10 +3,14 @@ import Pedido from "../models/pedidoModels.js"
 import Produto from '../models/produtoModels.js';
 import ItemPedido from '../models/itemPedidoModels.js';
 import FormaPagamento from "../models/formaPagamentoModels.js"
-import formaPagamentoController from './formaPagamentoController.js';
+import Config from '../models/configModels.js';
 import SubItemPedido from '../models/SubItemPedidoModels.js';
 import { Sequelize, Op, fn, col, where, literal } from 'sequelize';
 import SubProduto from '../models/subProdutoModels.js';
+import { formatTelefone } from '../functions/formatTelefone.js';
+import { sendMessageWhatsapp } from '../functions/sendMessageWhatsapp.js';
+import axios from "axios";
+import { sendToAutomaticPrint } from '../functions/automatic-print.js';
 
 // Relação FormaPagamento <-> Pedido
 Pedido.belongsTo(FormaPagamento, { foreignKey: 'formaPagamento_id' });
@@ -127,7 +131,7 @@ class PedidoController {
             }
 
             // 6. Adiciona taxa de entrega
-            console.log("Valor da entrega", taxaEntrega, "Tipo do atributo taxa de entrega", typeof(taxaEntrega))
+            console.log("Valor da entrega", taxaEntrega, "Tipo do atributo taxa de entrega", typeof (taxaEntrega))
             valorTotalCalculado += Number(taxaEntrega);
 
             // 7. Atualiza total do pedido
@@ -136,6 +140,46 @@ class PedidoController {
 
             // 8. Confirma a transação
             await t.commit();
+
+            // 9. Envia pedido para impressão
+            try {
+                await sendToAutomaticPrint(pedido, produtosPedido, taxaEntrega)
+            } catch (error) {
+                console.error("Erro na chamada de impressão:", error);
+            }
+
+            // 9. Envia mensagem no whatsapp do cliente para confirmação do pedido
+            try {
+                // Buscar a configuração para pegar o nome da instância Evolution API
+                const config = await Config.findOne({ where: { id: 1 } }); // ajuste o id conforme seu caso
+
+                if (!config || !config.evolutionInstanceName) {
+                    console.warn("Configuração da Evolution API não encontrada. Mensagem WhatsApp não será enviada.");
+                } else {
+                    // Montar mensagem para o cliente
+                    const mensagens = [
+                        `Olá ${nomeCliente}, seu pedido foi criado com sucesso!`,
+                        `Número do pedido: ${pedido.id}`,
+                        `Valor total: R$ ${valorTotalCalculado.toFixed(2)}`,
+                        `Obrigado pela preferência! 🍽️`
+                    ];
+
+                    const telefoneFormatado = formatTelefone(telefoneCliente)
+
+                    // Enviar mensagem
+                    await sendMessageWhatsapp(
+                        process.env.EVOLUTION_API_URL,
+                        config.evolutionInstanceName,
+                        process.env.EVOLUTION_API_KEY,
+                        telefoneFormatado,
+                        mensagens,
+                        2000 // delay de 2 segundos entre mensagens
+                    );
+                }
+            } catch (err) {
+                // Log de erro, mas não impacta a resposta do pedido
+                console.error("Erro ao enviar mensagem WhatsApp:", err.message);
+            }
 
             return pedido;
 
@@ -146,6 +190,56 @@ class PedidoController {
         }
     }
 
+    async printPedido(id) {
+        try {
+            // 1. Busca o pedido com todos os seus relacionamentos
+            const pedido = await Pedido.findByPk(id, {
+                include: [{
+                    model: ItemPedido,
+                    as: 'itensPedido',
+                    include: [
+                        { model: Produto },
+                        {
+                            model: SubItemPedido,
+                            as: 'subItensPedido',
+                            include: [{ model: SubProduto }]
+                        }
+                    ]
+                }]
+            });
+
+            if (!pedido) {
+                throw new Error("Pedido não encontrado.");
+            }
+
+            // 2. Busca a taxa de entrega nas configurações
+            const config = await Config.findOne();
+            const taxaEntrega = config ? config.taxaEntrega : 0;
+
+            // 3. Reconstrói o array 'produtosPedido' no formato esperado pela função de impressão
+            const produtosPedido = pedido.itensPedido.map(item => {
+                return {
+                    produtoId: item.produtoId,
+                    quantidade: item.quantidade,
+                    subProdutos: item.subItensPedido.map(subItem => {
+                        return {
+                            subProdutoId: subItem.subProdutoId,
+                            quantidade: subItem.quantidade
+                        };
+                    })
+                };
+            });
+
+            // 4. Chama a função de impressão
+            await sendToAutomaticPrint(pedido, produtosPedido, taxaEntrega);
+
+            return { success: true, message: `Pedido #${id} enviado para impressão.` };
+
+        } catch (error) {
+            console.error("Erro ao tentar imprimir pedido:", error.message);
+            return { success: false, message: error.message };
+        }
+    }
 
     //funcao para encontrar e contar todos os pedidos cadastrados na aplicacao
     async findAndCountAllPedidos() {

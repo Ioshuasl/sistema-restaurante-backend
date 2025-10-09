@@ -55,6 +55,34 @@ pedidoRoutes.post('/pedido', validate(createPedidoSchema), async (req, res) => {
     }
 })
 
+pedidoRoutes.post('/pedido/:id/print', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({ message: 'O ID do pedido é obrigatório.' });
+        }
+
+        const result = await pedidoController.printPedido(id);
+
+        if (result.success) {
+            // A requisição foi bem sucedida e a ação foi disparada
+            res.status(200).json({ message: result.message });
+        } else {
+            // Se o pedido não foi encontrado, o erro é do cliente (ID inválido)
+            if (result.message === "Pedido não encontrado.") {
+                return res.status(404).json({ message: result.message });
+            }
+            // Para outros erros (ex: falha na comunicação com o agente)
+            return res.status(500).json({ message: result.message });
+        }
+
+    } catch (error) {
+        console.error("Erro na rota de impressão:", error);
+        res.status(500).json({ message: 'Ocorreu um erro inesperado no servidor.' });
+    }
+})
+
 //rota para mostrar todos os pedidos registrados e a quantidade total
 pedidoRoutes.get('/pedido', async (req, res) => {
     try {

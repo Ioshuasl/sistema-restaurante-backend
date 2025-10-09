@@ -41,7 +41,7 @@ app.use('/api', dashboardRoutes)
 try {
     await sequelize.authenticate(); //verifica a conexão com o banco de dados
     console.log("Conexão com o banco de dados estabelecida com sucesso!");
-    await sequelize.sync(); // Sincroniza os modelos com o banco de dados
+    await sequelize.sync({ alter: true }); // Sincroniza os modelos com o banco de dados
     console.log("Modelos sincronizados com sucesso!");
 } catch (error) {
     console.error("Falha ao conectar com o banco de dados:", error);
