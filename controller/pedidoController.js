@@ -4,7 +4,7 @@ import Produto from '../models/produtoModels.js';
 import ItemPedido from '../models/itemPedidoModels.js';
 import FormaPagamento from "../models/formaPagamentoModels.js"
 import Config from '../models/configModels.js';
-import SubItemPedido from '../models/SubItemPedidoModels.js';
+import SubItemPedido from '../models/subItemPedidoModels.js';
 import { Sequelize, Op, fn, col, where, literal } from 'sequelize';
 import SubProduto from '../models/subProdutoModels.js';
 import { formatTelefone } from '../functions/formatTelefone.js';
