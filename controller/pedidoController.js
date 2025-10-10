@@ -9,7 +9,6 @@ import { Sequelize, Op, fn, col, where, literal } from 'sequelize';
 import SubProduto from '../models/subProdutoModels.js';
 import { formatTelefone } from '../functions/formatTelefone.js';
 import { sendMessageWhatsapp } from '../functions/sendMessageWhatsapp.js';
-import axios from "axios";
 import { sendToAutomaticPrint } from '../functions/automatic-print.js';
 
 // Relação FormaPagamento <-> Pedido

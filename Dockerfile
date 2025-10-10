@@ -2,7 +2,7 @@
 # Utiliza uma imagem base oficial do Node.js. A tag 'alpine' refere-se a uma versão leve,
 # ideal para produção, diminuindo o tamanho final da imagem.
 # Escolhemos a versão 20, uma versão LTS (Long Term Support) estável.
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 # Define o diretório de trabalho dentro do contêiner.
 WORKDIR /app
@@ -21,7 +21,7 @@ COPY . .
 
 # --- Estágio 2: Produção ---
 # Cria um estágio final a partir de uma imagem base limpa para um ambiente de produção mais seguro e enxuto.
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Define o diretório de trabalho.
 WORKDIR /app
