@@ -79,8 +79,18 @@ export async function sendToAutomaticPrint(
             formaPagamento: formaPagamento ? formaPagamento.nomeFormaPagamento : "Não informada",
         };
 
+        try {
+            await axios.post(`${urlAgenteImpressao}/print`,pedidoData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true'
+                }
+            });
+        } catch (error) {
+            console.log(error.response.data)
+        }
+
         // Envia para o agente de impressão local — rota fixa /print
-        await axios.post(`${urlAgenteImpressao}/print`, pedidoData);
 
         console.log(`🖨️ Pedido #${pedido.id} enviado para ${nomeImpressora} via ${urlAgenteImpressao}/print`);
     } catch (err) {
