@@ -1,41 +1,44 @@
-import sequelize from '../config/database.js'; // Importe a instância do sequelize
-import Pedido from "../models/pedidoModels.js"
+import sequelize from '../config/database.js';
+import Pedido from "../models/pedidoModels.js";
 import Produto from '../models/produtoModels.js';
 import ItemPedido from '../models/itemPedidoModels.js';
-import FormaPagamento from "../models/formaPagamentoModels.js"
+import FormaPagamento from "../models/formaPagamentoModels.js";
 import Config from '../models/configModels.js';
-import SubItemPedido from '../models/subItemPedidoModels.js';
 import { Sequelize, Op, fn, col, where, literal } from 'sequelize';
-import SubProduto from '../models/subProdutoModels.js';
 import { formatTelefone } from '../functions/formatTelefone.js';
 import { sendMessageWhatsapp } from '../functions/sendMessageWhatsapp.js';
 import { sendToAutomaticPrint } from '../functions/automatic-print.js';
+import ItemOpcao from '../models/itemOpcaoModels.js'; 
+import OpcaoItemPedido from '../models/opcaoItemPedidoModels.js';
 
-// Relação FormaPagamento <-> Pedido
+// --- ASSOCIAÇÕES ATUALIZADAS ---
+
+// Relação FormaPagamento <-> Pedido (Existente)
 Pedido.belongsTo(FormaPagamento, { foreignKey: 'formaPagamento_id' });
 FormaPagamento.hasMany(Pedido, { foreignKey: 'formaPagamento_id' });
 
-// Relação Pedido <-> ItemPedido
+// Relação Pedido <-> ItemPedido (Existente)
 Pedido.hasMany(ItemPedido, { foreignKey: 'pedidoId', as: 'itensPedido' });
 ItemPedido.belongsTo(Pedido, { foreignKey: 'pedidoId' });
 
-// Relação Produto <-> ItemPedido
+// Relação Produto <-> ItemPedido (Existente)
 Produto.hasMany(ItemPedido, { foreignKey: 'produtoId' });
 ItemPedido.belongsTo(Produto, { foreignKey: 'produtoId' });
 
-// Relação ItemPedido <-> SubItemPedido
-ItemPedido.hasMany(SubItemPedido, { foreignKey: 'itemPedidoId', as: 'subItensPedido' });
-SubItemPedido.belongsTo(ItemPedido, { foreignKey: 'itemPedidoId' });
+// Relação ItemPedido <-> OpcaoItemPedido (NOVA)
+ItemPedido.hasMany(OpcaoItemPedido, { foreignKey: 'itemPedidoId', as: 'opcoesPedido' });
+OpcaoItemPedido.belongsTo(ItemPedido, { foreignKey: 'itemPedidoId' });
 
-// Relação SubProduto <-> SubItemPedido
-SubProduto.hasMany(SubItemPedido, { foreignKey: 'subProdutoId' });
-SubItemPedido.belongsTo(SubProduto, { foreignKey: 'subProdutoId' });
+// Relação ItemOpcao <-> OpcaoItemPedido (NOVA)
+ItemOpcao.hasMany(OpcaoItemPedido, { foreignKey: 'itemOpcaoId' });
+OpcaoItemPedido.belongsTo(ItemOpcao, { foreignKey: 'itemOpcaoId' });
+
 
 class PedidoController {
 
-    //funcao para criar pedido
+    // Funcao para criar pedido (Refatorada)
     async createPedido({
-        produtosPedido,
+        produtosPedido, // Formato esperado: [{ produtoId, quantidade, opcoesEscolhidas: [{ itemOpcaoId, quantidade }] }]
         formaPagamento_id,
         situacaoPedido,
         isRetiradaEstabelecimento,
@@ -82,12 +85,12 @@ class PedidoController {
                 bairroCliente,
                 cidadeCliente,
                 estadoCliente,
-                valorTotalPedido: 0
+                valorTotalPedido: 0 // Será calculado
             }, { transaction: t });
 
             let valorTotalCalculado = 0;
 
-            // 4. Loop dos produtos
+            // 4. Loop dos produtos (Itens do Pedido)
             for (const item of produtosPedido) {
                 const produto = await Produto.findByPk(item.produtoId);
                 if (!produto || !produto.isAtivo) {
@@ -97,7 +100,6 @@ class PedidoController {
                 const precoProduto = Number(produto.valorProduto);
                 const subtotalProduto = precoProduto * item.quantidade;
                 valorTotalCalculado += subtotalProduto;
-                console.log(valorTotalCalculado)
 
                 const itemPedido = await ItemPedido.create({
                     pedidoId: pedido.id,
@@ -106,23 +108,26 @@ class PedidoController {
                     precoUnitario: precoProduto
                 }, { transaction: t });
 
-                // 5. Subprodutos vinculados a esse item
-                if (item.subProdutos && item.subProdutos.length > 0) {
-                    for (const sub of item.subProdutos) {
-                        const subProduto = await SubProduto.findByPk(sub.subProdutoId);
-                        if (!subProduto || !subProduto.isAtivo) {
-                            throw new Error(`Subproduto com ID ${sub.subProdutoId} não encontrado ou inativo.`);
+                // 5. Opções (Itens de Opção) vinculadas a esse item (Marmita)
+                if (item.opcoesEscolhidas && item.opcoesEscolhidas.length > 0) {
+                    for (const opcao of item.opcoesEscolhidas) {
+                        // Valida o ItemOpcao (Arroz, Frango, etc.)
+                        const itemOpcao = await ItemOpcao.findByPk(opcao.itemOpcaoId);
+                        if (!itemOpcao || !itemOpcao.isAtivo) {
+                            throw new Error(`Item de Opção com ID ${opcao.itemOpcaoId} não encontrado ou inativo.`);
                         }
 
-                        const precoSub = Number(subProduto.valorAdicional) || 0;
-                        const subtotalSub = precoSub * sub.quantidade;
+                        const precoSub = Number(itemOpcao.valorAdicional) || 0;
+                        // Multiplica o adicional pela quantidade do item principal (marmita)
+                        // Se uma marmita tem 2x Arroz e o pedido tem 3x marmitas, serão 6x o preço adicional do arroz.
+                        // Assumindo que a 'quantidade' em 'opcao' é por marmita.
+                        const subtotalSub = precoSub * (opcao.quantidade || 1) * item.quantidade;
                         valorTotalCalculado += subtotalSub;
-                        console.log(valorTotalCalculado)
 
-                        await SubItemPedido.create({
+                        await OpcaoItemPedido.create({
                             itemPedidoId: itemPedido.id,
-                            subProdutoId: sub.subProdutoId,
-                            quantidade: sub.quantidade,
+                            itemOpcaoId: opcao.itemOpcaoId,
+                            quantidade: opcao.quantidade || 1,
                             precoAdicional: precoSub
                         }, { transaction: t });
                     }
@@ -130,8 +135,7 @@ class PedidoController {
             }
 
             // 6. Adiciona taxa de entrega
-            console.log("Valor da entrega", taxaEntrega, "Tipo do atributo taxa de entrega", typeof (taxaEntrega))
-            valorTotalCalculado += Number(taxaEntrega);
+            valorTotalCalculado += Number(taxaEntrega) || 0;
 
             // 7. Atualiza total do pedido
             pedido.valorTotalPedido = valorTotalCalculado;
@@ -140,43 +144,39 @@ class PedidoController {
             // 8. Confirma a transação
             await t.commit();
 
-            // 9. Envia pedido para impressão
+            // 9. Envia pedido para impressão (a função sendToAutomaticPrint também precisará ser ajustada)
             try {
-                await sendToAutomaticPrint(pedido, produtosPedido, taxaEntrega)
+                // NOTA: A função 'sendToAutomaticPrint' provavelmente quebrou,
+                // pois ela espera 'subProdutos'. Você precisará ajustá-la
+                // para receber 'opcoesEscolhidas' ou adaptar os dados aqui.
+                await sendToAutomaticPrint(pedido, produtosPedido, taxaEntrega);
             } catch (error) {
-                console.error("Erro na chamada de impressão:", error);
+                console.error("Erro na chamada de impressão (pode precisar de refatoração):", error);
             }
 
-            // 9. Envia mensagem no whatsapp do cliente para confirmação do pedido
+            // 10. Envia mensagem no whatsapp
             try {
-                // Buscar a configuração para pegar o nome da instância Evolution API
-                const config = await Config.findOne({ where: { id: 1 } }); // ajuste o id conforme seu caso
-
+                const config = await Config.findOne({ where: { id: 1 } }); 
                 if (!config || !config.evolutionInstanceName) {
                     console.warn("Configuração da Evolution API não encontrada. Mensagem WhatsApp não será enviada.");
                 } else {
-                    // Montar mensagem para o cliente
                     const mensagens = [
                         `Olá ${nomeCliente}, seu pedido foi criado com sucesso!`,
                         `Número do pedido: ${pedido.id}`,
                         `Valor total: R$ ${valorTotalCalculado.toFixed(2)}`,
                         `Obrigado pela preferência! 🍽️`
                     ];
-
-                    const telefoneFormatado = formatTelefone(telefoneCliente)
-
-                    // Enviar mensagem
+                    const telefoneFormatado = formatTelefone(telefoneCliente);
                     await sendMessageWhatsapp(
                         process.env.EVOLUTION_API_URL,
                         config.evolutionInstanceName,
                         process.env.EVOLUTION_API_KEY,
                         telefoneFormatado,
                         mensagens,
-                        2000 // delay de 2 segundos entre mensagens
+                        2000
                     );
                 }
             } catch (err) {
-                // Log de erro, mas não impacta a resposta do pedido
                 console.error("Erro ao enviar mensagem WhatsApp:", err.message);
             }
 
@@ -189,9 +189,10 @@ class PedidoController {
         }
     }
 
+    // Funcao de Impressão (Refatorada)
     async printPedido(id) {
         try {
-            // 1. Busca o pedido com todos os seus relacionamentos
+            // 1. Busca o pedido com os novos relacionamentos
             const pedido = await Pedido.findByPk(id, {
                 include: [{
                     model: ItemPedido,
@@ -199,9 +200,9 @@ class PedidoController {
                     include: [
                         { model: Produto },
                         {
-                            model: SubItemPedido,
-                            as: 'subItensPedido',
-                            include: [{ model: SubProduto }]
+                            model: OpcaoItemPedido,
+                            as: 'opcoesPedido', // <-- NOVO ALIAS
+                            include: [{ model: ItemOpcao }] // <-- NOVO MODEL
                         }
                     ]
                 }]
@@ -211,25 +212,26 @@ class PedidoController {
                 throw new Error("Pedido não encontrado.");
             }
 
-            // 2. Busca a taxa de entrega nas configurações
+            // 2. Busca a taxa de entrega
             const config = await Config.findOne();
             const taxaEntrega = config ? config.taxaEntrega : 0;
 
-            // 3. Reconstrói o array 'produtosPedido' no formato esperado pela função de impressão
+            // 3. Reconstrói 'produtosPedido' para a função de impressão
             const produtosPedido = pedido.itensPedido.map(item => {
                 return {
                     produtoId: item.produtoId,
                     quantidade: item.quantidade,
-                    subProdutos: item.subItensPedido.map(subItem => {
+                    // Ajusta para o novo formato
+                    opcoesEscolhidas: item.opcoesPedido.map(opcao => {
                         return {
-                            subProdutoId: subItem.subProdutoId,
-                            quantidade: subItem.quantidade
+                            itemOpcaoId: opcao.itemOpcaoId,
+                            quantidade: opcao.quantidade
                         };
                     })
                 };
             });
 
-            // 4. Chama a função de impressão
+            // 4. Chama a função de impressão (que também precisa ser adaptada)
             await sendToAutomaticPrint(pedido, produtosPedido, taxaEntrega);
 
             return { success: true, message: `Pedido #${id} enviado para impressão.` };
@@ -240,82 +242,82 @@ class PedidoController {
         }
     }
 
-    //funcao para encontrar e contar todos os pedidos cadastrados na aplicacao
+    // Funcao de busca (Refatorada)
     async findAndCountAllPedidos() {
         try {
             const pedidos = await Pedido.findAndCountAll({
                 include: [{
                     model: ItemPedido,
-                    as: 'itensPedido',  // use o alias correto
+                    as: 'itensPedido',
                     include: [
                         {
                             model: Produto,
                             attributes: ['nomeProduto']
                         },
                         {
-                            model: SubItemPedido,
-                            as: 'subItensPedido',  // alias para subItensPedido
+                            model: OpcaoItemPedido,
+                            as: 'opcoesPedido', // <-- NOVO ALIAS
                             include: [
                                 {
-                                    model: SubProduto,
-                                    attributes: ['nomeSubProduto']
+                                    model: ItemOpcao, // <-- NOVO MODEL
+                                    attributes: ['nome'] // Nome do item (Ex: Arroz)
                                 }
                             ]
                         }
                     ]
                 }],
-                order: [['id', 'DESC']]  // Ordena por ID de forma decrescente
+                order: [['id', 'DESC']]
             });
-            return pedidos
+            return pedidos;
         } catch (error) {
-            console.error(error)
-            return { message: "Erro ao tentar encontrar pedidos", error }
+            console.error(error);
+            return { message: "Erro ao tentar encontrar pedidos", error };
         }
     }
 
-    //funcao para encontrar todos os pedidos cadastrados na aplicacao
+    // Funcao de busca (Refatorada)
     async findAllPedidos() {
         try {
             const pedidos = await Pedido.findAll({
                 include: [{
                     model: ItemPedido,
-                    as: 'itensPedido',  // use o alias correto
+                    as: 'itensPedido',
                     include: [
                         {
                             model: Produto,
                             attributes: ['nomeProduto']
                         },
                         {
-                            model: SubItemPedido,
-                            as: 'subItensPedido',  // alias para subItensPedido
+                            model: OpcaoItemPedido,
+                            as: 'opcoesPedido', // <-- NOVO ALIAS
                             include: [
                                 {
-                                    model: SubProduto,
-                                    attributes: ['nomeSubProduto']
+                                    model: ItemOpcao, // <-- NOVO MODEL
+                                    attributes: ['nome']
                                 }
                             ]
                         }
                     ]
                 }]
-            })
-            console.log(pedidos)
-            return pedidos
+            });
+            return pedidos;
         } catch (error) {
-            console.error(error)
-            return { message: "Erro ao tentar encontrar pedidos", error }
+            console.error(error);
+            return { message: "Erro ao tentar encontrar pedidos", error };
         }
     }
 
+    // --- Funções de Dashboard (Não precisam de mudança) ---
+    
     async countAllPedidos() {
         try {
-            const pedidos = Pedido.count()
-            return pedidos
+            const pedidos = Pedido.count();
+            return pedidos;
         } catch (error) {
-            return { message: "Erro ao tentar encontrar pedidos", error }
+            return { message: "Erro ao tentar encontrar pedidos", error };
         }
     }
 
-    // CORREÇÃO: Usando a função EXTRACT() do PostgreSQL
     async getMonthlyRevenue(year, month) {
         try {
             const result = await Pedido.findOne({
@@ -328,11 +330,9 @@ class PedidoController {
                         where(literal('EXTRACT(MONTH FROM "createdAt")'), Number(month))
                     ]
                 },
-                raw: true // retorna objeto simples
+                raw: true
             });
-
             const totalRevenue = parseFloat(result.totalRevenue) || 0;
-
             return { totalRevenue };
         } catch (error) {
             console.error(error);
@@ -340,7 +340,6 @@ class PedidoController {
         }
     }
 
-    // CORREÇÃO: Usando a função DATE_TRUNC, que é compatível com PostgreSQL
     async getMonthlyOrderCounts() {
         try {
             const monthlyCounts = await Pedido.findAll({
@@ -351,7 +350,6 @@ class PedidoController {
                 group: [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt'))],
                 order: [[sequelize.fn('DATE_TRUNC', 'month', sequelize.col('createdAt')), 'ASC']]
             });
-
             return monthlyCounts;
         } catch (error) {
             console.error(error);
@@ -359,33 +357,28 @@ class PedidoController {
         }
     }
 
-    // CORREÇÃO: Ajustando a consulta para a sintaxe correta com GROUP BY
     async getPaymentMethodDistribution() {
         try {
             const distribution = await FormaPagamento.findAll({
                 attributes: [
                     'id',
                     'nomeFormaPagamento',
-                    [Sequelize.fn('COUNT', Sequelize.col('pedidos.id')), 'count'] // alias correto
+                    [Sequelize.fn('COUNT', Sequelize.col('pedidos.id')), 'count']
                 ],
                 include: [
                     {
                         model: Pedido,
-                        as: 'pedidos', // garantir que bate com o relacionamento
+                        as: 'pedidos',
                         attributes: []
                     }
                 ],
                 group: ['FormaPagamento.id', 'FormaPagamento.nomeFormaPagamento'],
                 order: [['nomeFormaPagamento', 'ASC']]
             });
-
-
-            // Formata para o frontend
             const formattedDistribution = distribution.map(item => ({
                 label: item.nomeFormaPagamento,
                 value: parseInt(item.getDataValue('count'), 10)
             }));
-
             return formattedDistribution;
         } catch (error) {
             console.error(error);
@@ -393,45 +386,45 @@ class PedidoController {
         }
     }
 
+    // --- Funções de CRUD simples (Não precisam de mudança) ---
+    
     async findPedidoById(id) {
         try {
-            const pedido = await Pedido.findByPk(id)
-            return pedido
+            const pedido = await Pedido.findByPk(id);
+            return pedido;
         } catch (error) {
-            console.error(error)
-            return { message: "Erro tentar encontrar o pedido", error }
+            console.error(error);
+            return { message: "Erro tentar encontrar o pedido", error };
         }
     }
 
-    //funcao para encontrar pedido que estao vinculados a uma forma de pagamento
     async findPedidosByFormaPagamento(formaPagamento_id) {
         try {
             const pedidos = await Pedido.findAll({
                 where: {
                     formaPagamento_id: formaPagamento_id
                 }
-            })
-            return pedidos
+            });
+            return pedidos;
         } catch (error) {
-            console.error(error)
-            return { message: "Erro ao tentar encontrar os pedidos", error }
+            console.error(error);
+            return { message: "Erro ao tentar encontrar os pedidos", error };
         }
     }
 
-    //funcao para atualizar pedido
     async updatePedido(updatedData, id) {
         try {
             const pedido = await Pedido.update(updatedData, {
                 where: {
                     id: id
                 }
-            })
-            return pedido
+            });
+            return pedido;
         } catch (error) {
-            console.error(error)
-            return { message: "Erro ao tentar atualizar um pedido", error }
+            console.error(error);
+            return { message: "Erro ao tentar atualizar um pedido", error };
         }
     }
 }
 
-export default new PedidoController()
+export default new PedidoController();

@@ -1,6 +1,6 @@
 import axios from "axios";
 import Produto from "../models/produtoModels.js";
-import SubProduto from "../models/subProdutoModels.js";
+import ItemOpcao from "../models/itemOpcaoModels.js"; 
 import Config from "../models/configModels.js";
 import FormaPagamento from "../models/formaPagamentoModels.js";
 
@@ -8,7 +8,7 @@ import FormaPagamento from "../models/formaPagamentoModels.js";
  * Envia um pedido recém-criado para o agente de impressão local com dados detalhados.
  *
  * @param {Object} pedido - Instância do pedido criado (Sequelize)
- * @param {Array} produtosPedido - Array vindo do frontend com produtos e subprodutos
+ * @param {Array} produtosPedido - Array vindo do frontend com produtos e suas opções
  * @param {number} taxaEntrega - O valor da taxa de entrega
  */
 export async function sendToAutomaticPrint(
@@ -17,7 +17,6 @@ export async function sendToAutomaticPrint(
     taxaEntrega = 0
 ) {
     try {
-        // Busca a configuração global (empresa, impressora, etc.)
         const config = await Config.findOne();
         if (!config || !config.urlAgenteImpressao || !config.nomeImpressora) {
             console.warn("⚠️ Configuração de impressão incompleta ou não definida.");
@@ -25,14 +24,9 @@ export async function sendToAutomaticPrint(
         }
 
         const { nomeImpressora, urlAgenteImpressao, razaoSocial, cnpj } = config;
-
-        // Busca o nome da forma de pagamento
         const formaPagamento = await FormaPagamento.findByPk(pedido.formaPagamento_id);
-
-        // Calcula o subtotal (Total - Taxa de Entrega)
         const subtotal = parseFloat(pedido.valorTotalPedido) - parseFloat(taxaEntrega);
 
-        // Monta o JSON que será enviado ao agente local
         const pedidoData = {
             printerName: nomeImpressora,
             id: pedido.id,
@@ -50,18 +44,23 @@ export async function sendToAutomaticPrint(
                     const produto = await Produto.findByPk(item.produtoId);
                     if (!produto) return null;
 
+                    // --- INÍCIO DA MUDANÇA ---
+                    // 2. Mapeia 'item.opcoesEscolhidas' em vez de 'item.subProdutos'
                     const subItens = await Promise.all(
-                        item.subProdutos.map(async (sub) => {
-                            const subProduto = await SubProduto.findByPk(sub.subProdutoId);
-                            return subProduto
+                        (item.opcoesEscolhidas || []).map(async (opcao) => { 
+                            // 3. Busca em 'ItemOpcao' em vez de 'SubProduto'
+                            const itemOpcao = await ItemOpcao.findByPk(opcao.itemOpcaoId); 
+                            return itemOpcao
                                 ? {
-                                    nome: subProduto.nomeSubProduto,
-                                    quantidade: sub.quantidade,
-                                    valor: parseFloat(subProduto.valorAdicional),
+                                    // 4. Usa os campos corretos do novo model
+                                    nome: itemOpcao.nome, 
+                                    quantidade: opcao.quantidade,
+                                    valor: parseFloat(itemOpcao.valorAdicional),
                                 }
                                 : null;
                         })
                     );
+                    // --- FIM DA MUDANÇA ---
 
                     return {
                         produto: produto.nomeProduto,
@@ -70,7 +69,7 @@ export async function sendToAutomaticPrint(
                         subItens: subItens.filter(Boolean),
                     };
                 })
-            ).then(items => items.filter(Boolean)), // Garante que itens nulos sejam removidos
+            ).then(items => items.filter(Boolean)), 
             totais: {
                 subtotal: subtotal,
                 taxaEntrega: parseFloat(taxaEntrega),
@@ -80,19 +79,17 @@ export async function sendToAutomaticPrint(
         };
 
         try {
-            await axios.post(`${urlAgenteImpressao}/print`,pedidoData, {
+            await axios.post(`${urlAgenteImpressao}/print`, pedidoData, {
                 headers: {
                     'Content-Type': 'application/json',
                     'ngrok-skip-browser-warning': 'true'
                 }
             });
+            console.log(`🖨️ Pedido #${pedido.id} enviado para ${nomeImpressora} via ${urlAgenteImpressao}/print`);
         } catch (error) {
-            console.log(error.response.data)
+            console.log("Erro ao conectar ao agente de impressão:", error.response ? error.response.data : error.message);
         }
 
-        // Envia para o agente de impressão local — rota fixa /print
-
-        console.log(`🖨️ Pedido #${pedido.id} enviado para ${nomeImpressora} via ${urlAgenteImpressao}/print`);
     } catch (err) {
         console.error("⚠️ Erro ao enviar pedido para impressão automática:", err.message);
     }

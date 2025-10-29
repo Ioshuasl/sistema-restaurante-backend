@@ -1,37 +1,38 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/database.js";
-import Produto from "./produtoModels.js";
+import GrupoOpcao from "./grupoOpcaoModels.js";
 
-const SubProduto = sequelize.define("subprodutos", {
+const ItemOpcao = sequelize.define("itens_opcoes", {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
         allowNull: false
     },
-    nomeSubProduto: {
+    nome: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false // Ex: "Arroz", "Filé de Frango", "Banana Frita"
+    },
+    valorAdicional: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0.00
     },
     isAtivo: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
     },
-    valorAdicional: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true
-    },
-    produto_id: {
+    grupoOpcao_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Produto,
+            model: GrupoOpcao,
             key: "id"
         }
     }
 },{
-    tableName: "subprodutos",
+    tableName: "itens_opcoes",
     timestamps: true
 });
 
-export default SubProduto;
+export default ItemOpcao;

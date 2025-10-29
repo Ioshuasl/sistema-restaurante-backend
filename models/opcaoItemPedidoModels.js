@@ -1,9 +1,9 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/database.js';
 import ItemPedido from './itemPedidoModels.js';
-import SubProduto from './subProdutoModels.js';
+import ItemOpcao from './itemOpcaoModels.js'; 
 
-const SubItemPedido = sequelize.define('subitempedido', {
+const OpcaoItemPedido = sequelize.define('opcao_item_pedido', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -13,15 +13,15 @@ const SubItemPedido = sequelize.define('subitempedido', {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: ItemPedido,
+            model: ItemPedido, // Referencia o ItemPedido
             key: 'id'
         }
     },
-    subProdutoId: {
+    itemOpcaoId: { // <-- MUDANÇA PRINCIPAL
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: SubProduto,
+            model: ItemOpcao, // Referencia o novo model ItemOpcao
             key: 'id'
         }
     },
@@ -30,14 +30,14 @@ const SubItemPedido = sequelize.define('subitempedido', {
         allowNull: false,
         defaultValue: 1
     },
-    precoAdicional: {
+    precoAdicional: { // Preço do ItemOpcao no momento da compra
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         defaultValue: 0.00
     }
 }, {
-    tableName: 'subitempedido',
+    tableName: 'opcao_item_pedido',
     timestamps: false
 });
 
-export default SubItemPedido;
+export default OpcaoItemPedido;

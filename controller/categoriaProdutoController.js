@@ -1,12 +1,18 @@
 import CategoriaProduto from "../models/categoriaProdutoModels.js"
 import Produto from "../models/produtoModels.js"
-import SubProduto from "../models/subProdutoModels.js";
+// 1. Importar os novos models
+import GrupoOpcao from "../models/grupoOpcaoModels.js"
+import ItemOpcao from "../models/itemOpcaoModels.js"
 
+// 2. Definir as associações corretas
 Produto.belongsTo(CategoriaProduto, { foreignKey: 'categoriaProduto_id' });
-CategoriaProduto.hasMany(Produto, { foreignKey: 'categoriaProduto_id' })
+CategoriaProduto.hasMany(Produto, { foreignKey: 'categoriaProduto_id' });
 
-Produto.hasMany(SubProduto, { foreignKey: 'produto_id' });
-SubProduto.belongsTo(Produto, { foreignKey: 'produto_id' });
+Produto.hasMany(GrupoOpcao, { foreignKey: "produto_id", onDelete: "CASCADE" });
+GrupoOpcao.belongsTo(Produto, { foreignKey: "produto_id" });
+
+GrupoOpcao.hasMany(ItemOpcao, { foreignKey: "grupoOpcao_id", onDelete: "CASCADE" });
+ItemOpcao.belongsTo(GrupoOpcao, { foreignKey: "grupoOpcao_id" });
 
 class CategoriaProdutoController {
 
@@ -28,7 +34,13 @@ class CategoriaProdutoController {
             const categoriaProdutos = await CategoriaProduto.findAll({
                 include: [{
                     model: Produto,          
-                    include: [SubProduto]
+                    // 3. Atualizar a inclusão para a nova estrutura aninhada
+                    include: [{
+                        model: GrupoOpcao,
+                        include: [{
+                            model: ItemOpcao
+                        }]
+                    }]
                 }]
             })
             return categoriaProdutos
