@@ -1,9 +1,11 @@
 import CategoriaProduto from "../models/categoriaProdutoModels.js"
 import Produto from "../models/produtoModels.js"
 import SubProduto from "../models/subProdutoModels.js";
+import GrupoOpcao from "../models/grupoOpcaoModels.js";
 
-Produto.belongsTo(CategoriaProduto, { foreignKey: 'categoriaProduto_id'});
-CategoriaProduto.hasMany(Produto, { foreignKey: 'categoriaProduto_id' })
+// --- REMOVA TODO O BLOCO DE ASSOCIAÇÕES DAQUI ---
+// As associações já foram carregadas pelo 'produtoController.js'
+// e estão disponíveis globalmente para o Sequelize.
 
 class MenuController{
     //funcao para montar o menu do cardápio com as categorias de produtos e os produtos
@@ -15,12 +17,21 @@ class MenuController{
                     where: {
                         isAtivo: true
                     },
+                    // O 'include' aninhado funciona porque o Sequelize
+                    // já "sabe" da associação 'gruposOpcoes'
                     include: {
-                        model: SubProduto,
-                        where: {
-                            isAtivo: true
-                        },
-                        required: false
+                        model: GrupoOpcao,
+                        as: 'gruposOpcoes', // O 'as' deve bater com a associação
+                        required: false,   
+                        
+                        include: {
+                            model: SubProduto,
+                            as: 'opcoes', // O 'as' deve bater com a associação
+                            where: {
+                                isAtivo: true 
+                            },
+                            required: false 
+                        }
                     }
                 }
             })

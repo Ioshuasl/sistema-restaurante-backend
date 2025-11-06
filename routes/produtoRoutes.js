@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { isAdmin, authenticateToken } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validationMiddleware.js';
+// Os nomes dos schemas importados continuam os mesmos
 import { createProdutoSchema, updateProdutoSchema } from '../validators/produtoValidator.js';
 
 const produtoRoutes = express.Router();
@@ -12,10 +13,14 @@ produtoRoutes.use(cors());
 
 // Rota para criar um produto com subprodutos
 produtoRoutes.post('/produto', authenticateToken, isAdmin, validate(createProdutoSchema), async (req, res) => {
-    const { nomeProduto, valorProduto, image, isAtivo, categoriaProduto_id, subprodutos } = req.body;
+    // --- ALTERAÇÃO AQUI ---
+    // Destrutura 'gruposOpcoes' ao invés de 'subprodutos'
+    const { nomeProduto, valorProduto, image, isAtivo, categoriaProduto_id, gruposOpcoes } = req.body;
 
     try {
-        const produto = await produtoController.createProduto(nomeProduto, valorProduto, image, isAtivo, categoriaProduto_id, subprodutos);
+        // --- ALTERAÇÃO AQUI ---
+        // Passa 'gruposOpcoes' para o controller
+        const produto = await produtoController.createProduto(nomeProduto, valorProduto, image, isAtivo, categoriaProduto_id, gruposOpcoes);
         return res.status(200).json(produto);
     } catch (error) {
         console.error(error);
@@ -24,6 +29,7 @@ produtoRoutes.post('/produto', authenticateToken, isAdmin, validate(createProdut
 });
 
 // Rota para encontrar todos os produtos com subprodutos
+// (Nenhuma alteração necessária aqui)
 produtoRoutes.get('/produto', async (req, res) => {
     try {
         const produtos = await produtoController.findAndCountAllProdutos();
@@ -35,6 +41,7 @@ produtoRoutes.get('/produto', async (req, res) => {
 });
 
 // Rota para encontrar um produto pelo id, incluindo os subprodutos
+// (Nenhuma alteração necessária aqui)
 produtoRoutes.get('/produto/:id', async (req, res) => {
     const { id } = req.params;
 
@@ -50,10 +57,14 @@ produtoRoutes.get('/produto/:id', async (req, res) => {
 // Rota para atualizar um produto, incluindo os subprodutos
 produtoRoutes.put('/produto/:id', authenticateToken, isAdmin, validate(updateProdutoSchema), async (req, res) => {
     const { id } = req.params;
-    const { nomeProduto, valorProduto, image, isAtivo, categoriaProduto_id, subprodutos } = req.body;
+    // --- ALTERAÇÃO AQUI ---
+    // Destrutura 'gruposOpcoes' ao invés de 'subprodutos'
+    const { nomeProduto, valorProduto, image, isAtivo, categoriaProduto_id, gruposOpcoes } = req.body;
 
     try {
-        const produto = await produtoController.updateProduto(id, { nomeProduto, valorProduto, image, isAtivo, categoriaProduto_id, subprodutos });
+        // --- ALTERAÇÃO AQUI ---
+        // Passa 'gruposOpcoes' no objeto de update
+        const produto = await produtoController.updateProduto(id, { nomeProduto, valorProduto, image, isAtivo, categoriaProduto_id, gruposOpcoes });
         return res.status(200).json(produto);
     } catch (error) {
         console.error(error);
@@ -62,6 +73,7 @@ produtoRoutes.put('/produto/:id', authenticateToken, isAdmin, validate(updatePro
 });
 
 // Rota para deletar um produto (e seus subprodutos)
+// (Nenhuma alteração necessária aqui)
 produtoRoutes.delete('/produto/:id', authenticateToken, isAdmin, async (req, res) => {
     const { id } = req.params;
 
@@ -75,6 +87,7 @@ produtoRoutes.delete('/produto/:id', authenticateToken, isAdmin, async (req, res
 });
 
 // Rota para ativar ou desativar um produto (e seus subprodutos, se necessário)
+// (Nenhuma alteração necessária aqui)
 produtoRoutes.put('/produto/:id/toggle', authenticateToken, isAdmin, async (req, res) => {
     const { id } = req.params;
 

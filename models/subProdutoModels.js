@@ -1,6 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/database.js";
-import Produto from "./produtoModels.js";
+import GrupoOpcao from "./grupoOpcaoModels.js";
 
 const SubProduto = sequelize.define("subprodutos", {
     id: {
@@ -21,13 +21,14 @@ const SubProduto = sequelize.define("subprodutos", {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true
     },
-    produto_id: {
+    grupoOpcao_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: Produto,
+            model: GrupoOpcao, 
             key: "id"
-        }
+        },
+        onDelete: 'CASCADE'
     }
 },{
     tableName: "subprodutos",

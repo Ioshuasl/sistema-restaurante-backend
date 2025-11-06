@@ -2,6 +2,7 @@ import Users from "../models/usermodels.js"
 import * as bcrypt from 'bcrypt'
 import Cargo from "../models/cargoModels.js";
 import jwt from 'jsonwebtoken'
+import { Op } from "sequelize";
 
 Users.belongsTo(Cargo, { foreignKey: 'cargo_id' });
 Cargo.hasMany(Users, { foreignKey: 'cargo_id' });

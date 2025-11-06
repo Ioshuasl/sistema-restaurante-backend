@@ -1,12 +1,27 @@
 import * as yup from 'yup';
 
-// Esquema para validar SubProduto dentro de Produto
-const subProdutoSchema = yup.object({
+// --- ESQUEMA ATUALIZADO ---
+// Renomeado de subProdutoSchema para opcaoSchema para clareza
+// Este esquema valida um SubProduto (Ingrediente/Opção)
+const opcaoSchema = yup.object({
     id: yup.number().integer().optional(), // no update pode vir id
-    nomeSubProduto: yup.string().required("O nome do subproduto é obrigatório.").min(2),
-    isAtivo: yup.boolean().default(true)
+    nomeSubProduto: yup.string().required("O nome da opção é obrigatório.").min(2),
+    isAtivo: yup.boolean().default(true),
+    valorAdicional: yup.number().optional().default(0) // Importante adicionar
 });
 
+// --- NOVO ESQUEMA ---
+// Esquema para validar o GrupoOpcao (Ex: "Carnes", "Saladas")
+const grupoOpcaoSchema = yup.object({
+    id: yup.number().integer().optional(),
+    nomeGrupo: yup.string().required("O nome do grupo é obrigatório."),
+    minEscolhas: yup.number().integer().required("Mínimo de escolhas é obrigatório.").min(0),
+    maxEscolhas: yup.number().integer().required("Máximo de escolhas é obrigatório.").min(1),
+    // Um grupo pode ter várias opções (SubProdutos)
+    opcoes: yup.array().of(opcaoSchema).optional().min(0) 
+});
+
+// --- ESQUEMA ATUALIZADO ---
 // Esquema para criar um produto
 export const createProdutoSchema = yup.object({
     nomeProduto: yup.string().required("O nome do produto é obrigatório.").min(3),
@@ -14,9 +29,13 @@ export const createProdutoSchema = yup.object({
     image: yup.string().required("A imagem do produto é obrigatória."),
     isAtivo: yup.boolean().default(true),
     categoriaProduto_id: yup.number().required("A categoria é obrigatória.").integer(),
-    subprodutos: yup.array().of(subProdutoSchema).optional() // pode vir vazio ou não vir
+    
+    // --- ALTERAÇÃO AQUI ---
+    // Trocamos 'subprodutos' por 'gruposOpcoes'
+    gruposOpcoes: yup.array().of(grupoOpcaoSchema).optional() 
 });
 
+// --- ESQUEMA ATUALIZADO ---
 // Esquema para atualizar um produto
 export const updateProdutoSchema = yup.object({
     nomeProduto: yup.string().min(3),
@@ -24,5 +43,8 @@ export const updateProdutoSchema = yup.object({
     image: yup.string(),
     isAtivo: yup.boolean(),
     categoriaProduto_id: yup.number().integer(),
-    subprodutos: yup.array().of(subProdutoSchema).optional()
+
+    // --- ALTERAÇÃO AQUI ---
+    // Trocamos 'subprodutos' por 'gruposOpcoes'
+    gruposOpcoes: yup.array().of(grupoOpcaoSchema).optional()
 });
