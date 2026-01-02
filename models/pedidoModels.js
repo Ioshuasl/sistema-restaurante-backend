@@ -14,7 +14,7 @@ const Pedido = sequelize.define('pedidos', {
         allowNull: false
     },
     situacaoPedido: {
-        type: DataTypes.ENUM('preparando','entrega','finalizado'),
+        type: DataTypes.ENUM('preparando', 'entrega', 'finalizado', 'cancelado'),
         allowNull: false
     },
     formaPagamento_id: {
@@ -74,6 +74,14 @@ const Pedido = sequelize.define('pedidos', {
     estadoCliente: {
         type: DataTypes.STRING(2), //UF (ex: "GO", "SP")
         allowNull: false
+    },
+    tempoEspera: {
+        type: DataTypes.STRING,
+        allowNull: true // Pode ser nulo se não for informado
+    },
+    observacao: { // Novo campo para instruções do cliente
+        type: DataTypes.TEXT,
+        allowNull: true // Opcional, pois nem todo pedido tem observação
     }
 }, {
     tableName: 'pedidos',

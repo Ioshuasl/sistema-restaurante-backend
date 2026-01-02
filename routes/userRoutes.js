@@ -24,18 +24,14 @@ userRoutes.post('/login', validate(loginSchema), async (req, res) => {
     }
 });
 
-// Rota para acessar o painel de controle
-userRoutes.get('/dashboard', authenticateToken, async (req, res) => {
-    if (req.user) {
-        const user = await req.user
-        return res.status(200).json(user)
-    } else {
-        return res.status(401).send('Você precisa estar logado para acessar esta página.');
+userRoutes.post('/logout', authenticateToken, async (req, res) => {
+    try {
+        const result = await userController.logoutUser();
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send({ message: "Erro interno ao processar logout." });
     }
-});
-
-userRoutes.get('/dashboard/admin', isAdmin, (req, res) => {
-    res.send('Bem-vindo, painel de administrador!');
 });
 
 // Rota para criar o primeiro usuário

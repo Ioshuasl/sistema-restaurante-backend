@@ -1,11 +1,4 @@
-import CategoriaProduto from "../models/categoriaProdutoModels.js"
-import Produto from "../models/produtoModels.js"
-import SubProduto from "../models/subProdutoModels.js";
-import GrupoOpcao from "../models/grupoOpcaoModels.js";
-
-// --- REMOVA TODO O BLOCO DE ASSOCIAÇÕES DAQUI ---
-// As associações já foram carregadas pelo 'produtoController.js'
-// e estão disponíveis globalmente para o Sequelize.
+import { CategoriaProduto, Produto, GrupoOpcao, SubProduto } from "../models/index.js";
 
 class MenuController{
     //funcao para montar o menu do cardápio com as categorias de produtos e os produtos

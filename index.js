@@ -1,56 +1,38 @@
-import express from "express"
-import sequelize from "./config/database.js"
-import produtoRoutes from "./routes/produtoRoutes.js"
-import categoriaProdutoRoutes from "./routes/categoriaProdutoRoutes.js"
-import formaPagamentoRoutes from "./routes/formaPagamentoRoutes.js"
-import pedidoRoutes from "./routes/pedidoRoutes.js"
-import userRoutes from "./routes/userRoutes.js"
-import cors from "cors"
-import configRoutes from "./routes/configRoutes.js"
-import cargoRoutes from "./routes/cargoRoutes.js"
-import dotenv from 'dotenv'
-import menuRoutes from "./routes/menuRoutes.js"
-import uploadRoutes from "./routes/uploadRoutes.js"
-import dashboardRoutes from "./routes/dashboardRoutes.js"
+import express from "express";
+import cors from "cors";
+import dotenv from 'dotenv';
+import sequelize from "./config/database.js";
+import "./models/index.js";
+import apiRoutes from "./routes/index.js";
 
-dotenv.config()
+dotenv.config();
 
-const app = express()
-const PORT = process.env.PORT || 3000
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-//middleware para processar corpos de requisicao json
-app.use(express.json())
+app.use(express.json());
+app.use(cors());
 
-//usando o middleware do cors para habilitar os recursos do dominio da pagina web
-app.use(cors())
-
-// Serve a pasta 'uploads' como um recurso estático
+// Recursos estáticos
 app.use('/uploads', express.static('public/uploads'));
-app.use('/api', produtoRoutes)
-app.use('/api', categoriaProdutoRoutes)
-app.use('/api', formaPagamentoRoutes)
-app.use('/api', pedidoRoutes)
-app.use('/api', userRoutes)
-app.use('/api', configRoutes)
-app.use('/api', cargoRoutes)
-app.use('/api', menuRoutes)
-// Usa a rota de upload
-app.use('/api',uploadRoutes);
-app.use('/api', dashboardRoutes)
 
+// Prefixando todas as rotas da API com /api de uma só vez
+app.use('/api', apiRoutes);
+
+// Conexão com o banco e inicialização
 try {
-    await sequelize.authenticate(); //verifica a conexão com o banco de dados
+    await sequelize.authenticate();
     console.log("Conexão com o banco de dados estabelecida com sucesso!");
-    await sequelize.sync({ alter: true }); // Sincroniza os modelos com o banco de dados
+    await sequelize.sync({ alter: true });
     console.log("Modelos sincronizados com sucesso!");
 } catch (error) {
     console.error("Falha ao conectar com o banco de dados:", error);
 }
 
-app.get('/', async (req, res) => {
-    res.send("hello world")
-})
+app.get('/', (req, res) => {
+    res.send("API do Restaurante rodando com sucesso!");
+});
 
 app.listen(PORT, () => {
-    console.log("Servidor rodando na porta ", PORT)
-})
+    console.log(`Servidor rodando na porta ${PORT}`);
+});

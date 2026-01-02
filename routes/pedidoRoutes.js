@@ -26,9 +26,12 @@ pedidoRoutes.post('/pedido', validate(createPedidoSchema), async (req, res) => {
         loteCliente,
         bairroCliente,
         cidadeCliente,
-        estadoCliente } = req.body
+        estadoCliente,
+        tempoEspera,
+        observacao
+    } = req.body
 
-        console.log(req.body)
+    console.log(req.body)
 
     try {
         const pedido = await pedidoController.createPedido({
@@ -47,7 +50,9 @@ pedidoRoutes.post('/pedido', validate(createPedidoSchema), async (req, res) => {
             loteCliente,
             bairroCliente,
             cidadeCliente,
-            estadoCliente
+            estadoCliente,
+            tempoEspera,
+            observacao
         })
         return res.status(200).json(pedido)
     } catch (error) {
@@ -102,8 +107,8 @@ pedidoRoutes.get('/pedido/total', async (req, res) => {
     }
 })
 
-pedidoRoutes.get('/pedido/:id', async (req,res) => {
-    const {id} = req.params
+pedidoRoutes.get('/pedido/:id', async (req, res) => {
+    const { id } = req.params
     try {
         const pedido = await pedidoController.findPedidoById(id)
         return res.status(200).json(pedido)
@@ -124,6 +129,27 @@ pedidoRoutes.get('/pedido/formaPagamento/:id', async (req, res) => {
     }
 })
 
+pedidoRoutes.patch('/pedido/:id/tempo-espera', async (req, res) => {
+    const { id } = req.params;
+    const { tempoEspera } = req.body;
+
+    if (!tempoEspera) {
+        return res.status(400).json({ message: "O tempo de espera deve ser informado." });
+    }
+
+    try {
+        const result = await pedidoController.setWaitingNotification(id, tempoEspera);
+
+        if (result.success) {
+            return res.status(200).json(result);
+        } else {
+            return res.status(404).json(result);
+        }
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+});
+
 //rota para atualizar pedido
 pedidoRoutes.put('/pedido/:id', async (req, res) => {
     const { id } = req.params
@@ -136,5 +162,21 @@ pedidoRoutes.put('/pedido/:id', async (req, res) => {
         return res.status(400).send(error)
     }
 })
+
+pedidoRoutes.put('/pedido/:id/cancel', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await pedidoController.cancelPedido(id);
+
+        if (result.success) {
+            return res.status(200).json(result);
+        } else {
+            return res.status(404).json(result);
+        }
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+});
 
 export default pedidoRoutes

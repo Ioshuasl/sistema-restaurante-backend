@@ -33,6 +33,10 @@ const ItemPedido = sequelize.define('itenspedidos', {
     precoUnitario: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false
+    },
+    observacaoItem: { 
+        type: DataTypes.TEXT,
+        allowNull: true // Nem todo item precisa de observação
     }
 }, {
     tableName: 'itenspedidos',

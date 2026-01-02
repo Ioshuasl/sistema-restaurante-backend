@@ -1,8 +1,4 @@
-import Cargo from "../models/cargoModels.js";
-import Users from "../models/usermodels.js";
-
-Users.belongsTo(Cargo, { foreignKey: 'cargo_id' });
-Cargo.hasMany(Users, { foreignKey: 'cargo_id' });
+import { Cargo, Users } from "../models/index.js";
 
 class CargoController {
     //função para adicionar cargo

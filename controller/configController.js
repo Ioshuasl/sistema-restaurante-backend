@@ -1,4 +1,4 @@
-import Config from "../models/configModels.js";
+import { Config } from "../models/index.js";
 
 class ConfigController {
 

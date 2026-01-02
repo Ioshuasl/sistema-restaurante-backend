@@ -1,30 +1,7 @@
-import Produto from "../models/produtoModels.js"
-import CategoriaProduto from "../models/categoriaProdutoModels.js"
 import fs from 'fs/promises';
 import path from 'path';
-import SubProduto from "../models/subProdutoModels.js";
 import { Sequelize, Op, fn, col, where, literal } from 'sequelize';
-
-// --- NOVOS IMPORTS ---
-import GrupoOpcao from "../models/grupoOpcaoModels.js"; // Importa o novo model
-import sequelize from "../config/database.js"; // Importa a instância do sequelize para transações
-
-// --- ASSOCIAÇÕES ANTIGAS (REMOVIDAS) ---
-// Produto.hasMany(SubProduto, { foreignKey: "produto_id", onDelete: "CASCADE" });
-// SubProduto.belongsTo(Produto, { foreignKey: "produto_id" });
-
-// --- NOVAS ASSOCIAÇÕES ---
-// Produto <-> Categoria (Existente)
-Produto.belongsTo(CategoriaProduto, { foreignKey: 'categoriaProduto_id' })
-CategoriaProduto.hasMany(Produto, { foreignKey: 'categoriaProduto_id' })
-
-// Produto (Marmita) <-> GrupoOpcao (Ex: "Carnes")
-Produto.hasMany(GrupoOpcao, { foreignKey: 'produto_id', as: 'gruposOpcoes', onDelete: 'CASCADE' });
-GrupoOpcao.belongsTo(Produto, { foreignKey: 'produto_id' });
-
-// GrupoOpcao (Ex: "Carnes") <-> SubProduto (Ex: "Frango")
-GrupoOpcao.hasMany(SubProduto, { foreignKey: 'grupoOpcao_id', as: 'opcoes', onDelete: 'CASCADE' });
-SubProduto.belongsTo(GrupoOpcao, { foreignKey: 'grupoOpcao_id' });
+import { sequelize, CategoriaProduto, Produto, GrupoOpcao, SubProduto } from "../models/index.js";
 
 
 // --- HELPER PARA INCLUDES ---

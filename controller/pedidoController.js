@@ -1,35 +1,9 @@
 import sequelize from '../config/database.js'; // Importe a instância do sequelize
-import Pedido from "../models/pedidoModels.js"
-import Produto from '../models/produtoModels.js';
-import ItemPedido from '../models/itemPedidoModels.js';
-import FormaPagamento from "../models/formaPagamentoModels.js"
-import Config from '../models/configModels.js';
-import SubItemPedido from '../models/subItemPedidoModels.js';
+import { FormaPagamento, Pedido, ItemPedido, SubItemPedido, Produto, SubProduto, Config } from '../models/index.js';
 import { Sequelize, Op, fn, col, where, literal } from 'sequelize';
-import SubProduto from '../models/subProdutoModels.js';
 import { formatTelefone } from '../functions/formatTelefone.js';
 import { sendMessageWhatsapp } from '../functions/sendMessageWhatsapp.js';
 import { sendToAutomaticPrint } from '../functions/automatic-print.js';
-
-// Relação FormaPagamento <-> Pedido
-Pedido.belongsTo(FormaPagamento, { foreignKey: 'formaPagamento_id' });
-FormaPagamento.hasMany(Pedido, { foreignKey: 'formaPagamento_id' });
-
-// Relação Pedido <-> ItemPedido
-Pedido.hasMany(ItemPedido, { foreignKey: 'pedidoId', as: 'itensPedido' });
-ItemPedido.belongsTo(Pedido, { foreignKey: 'pedidoId' });
-
-// Relação Produto <-> ItemPedido
-Produto.hasMany(ItemPedido, { foreignKey: 'produtoId' });
-ItemPedido.belongsTo(Produto, { foreignKey: 'produtoId' });
-
-// Relação ItemPedido <-> SubItemPedido
-ItemPedido.hasMany(SubItemPedido, { foreignKey: 'itemPedidoId', as: 'subItensPedido' });
-SubItemPedido.belongsTo(ItemPedido, { foreignKey: 'itemPedidoId' });
-
-// Relação SubProduto <-> SubItemPedido
-SubProduto.hasMany(SubItemPedido, { foreignKey: 'subProdutoId' });
-SubItemPedido.belongsTo(SubProduto, { foreignKey: 'subProdutoId' });
 
 class PedidoController {
 
@@ -50,7 +24,9 @@ class PedidoController {
         bairroCliente,
         cidadeCliente,
         estadoCliente,
-        taxaEntrega
+        taxaEntrega,
+        tempoEspera,
+        observacao
     }) {
         const t = await sequelize.transaction();
 
@@ -82,6 +58,8 @@ class PedidoController {
                 bairroCliente,
                 cidadeCliente,
                 estadoCliente,
+                tempoEspera,
+                observacao,
                 valorTotalPedido: 0
             }, { transaction: t });
 
@@ -103,7 +81,8 @@ class PedidoController {
                     pedidoId: pedido.id,
                     produtoId: item.produtoId,
                     quantidade: item.quantidade,
-                    precoUnitario: precoProduto
+                    precoUnitario: precoProduto,
+                    observacaoItem: item.observacaoItem
                 }, { transaction: t });
 
                 // 5. Subprodutos vinculados a esse item
@@ -418,18 +397,134 @@ class PedidoController {
         }
     }
 
+    async setWaitingNotification(id, tempoEspera) {
+        try {
+            const pedido = await Pedido.findByPk(id);
+
+            if (!pedido) {
+                return { success: false, message: "Pedido não encontrado." };
+            }
+
+            // Atualiza o atributo no banco de dados
+            pedido.tempoEspera = tempoEspera;
+            await pedido.save();
+
+            // Dispara a notificação via WhatsApp
+            try {
+                const config = await Config.findOne({ where: { id: 1 } }); //
+
+                if (config?.evolutionInstanceName) {
+                    const mensagens = [
+                        `Olá ${pedido.nomeCliente}`,
+                        `⏳ *Tempo de espera do seu pedido estimado:* ${tempoEspera}`
+                    ];
+
+                    const telefoneFormatado = formatTelefone(pedido.telefoneCliente); //
+
+                    await sendMessageWhatsapp(
+                        process.env.EVOLUTION_API_URL,
+                        config.evolutionInstanceName,
+                        process.env.EVOLUTION_API_KEY,
+                        telefoneFormatado,
+                        mensagens,
+                        2000
+                    );
+                }
+            } catch (whatsappError) {
+                console.error("Erro ao enviar WhatsApp de tempo de espera:", whatsappError.message);
+                // Não bloqueamos a resposta, pois o banco já foi atualizado
+            }
+
+            return {
+                success: true,
+                message: "Tempo de espera registrado e cliente notificado.",
+                pedido
+            };
+        } catch (error) {
+            console.error(error);
+            throw new Error("Erro ao processar informativo de tempo de espera.");
+        }
+    }
+
     //funcao para atualizar pedido
     async updatePedido(updatedData, id) {
         try {
-            const pedido = await Pedido.update(updatedData, {
-                where: {
-                    id: id
+            // 1. Busca o pedido antes de atualizar para ter os dados do cliente
+            const pedido = await Pedido.findByPk(id);
+
+            if (!pedido) {
+                return { message: "Pedido não encontrado" };
+            }
+
+            // 2. Realiza a atualização no banco
+            await pedido.update(updatedData);
+
+            // 3. Verifica se deve enviar notificação (Se tempoEspera ou situacaoPedido foram alterados)
+            if (updatedData.tempoEspera || updatedData.situacaoPedido) {
+                try {
+                    const config = await Config.findOne({ where: { id: 1 } });
+
+                    if (config && config.evolutionInstanceName) {
+                        let mensagemStatus = "";
+
+                        // Lógica de mensagem baseada na situação
+                        if (pedido.situacaoPedido === 'preparando') {
+                            mensagemStatus = `Seu pedido está sendo preparado! 👨‍🍳`;
+                        } else if (pedido.situacaoPedido === 'entrega') {
+                            mensagemStatus = `Seu pedido saiu para entrega! 🚚`;
+                        } else if (pedido.situacaoPedido === 'cancelado') {
+                            mensagemStatus = `Seu pedido foi cancelado! ❌`;
+                        }
+
+                        const mensagens = [
+                            mensagemStatus,
+                            updatedData.tempoEspera ? `⏳ *Tempo de espera estimado:* ${updatedData.tempoEspera}` : "",
+                            `Obrigado pela paciência! ✨`
+                        ].filter(m => m !== ""); // Remove linhas vazias
+
+                        const telefoneFormatado = formatTelefone(pedido.telefoneCliente);
+
+                        await sendMessageWhatsapp(
+                            process.env.EVOLUTION_API_URL,
+                            config.evolutionInstanceName,
+                            process.env.EVOLUTION_API_KEY,
+                            telefoneFormatado,
+                            mensagens,
+                            2000
+                        );
+                    }
+                } catch (err) {
+                    console.error("Erro ao enviar notificação de atualização:", err.message);
                 }
-            })
-            return pedido
+            }
+
+            return { message: "Pedido atualizado com sucesso", pedido };
         } catch (error) {
-            console.error(error)
-            return { message: "Erro ao tentar atualizar um pedido", error }
+            console.error(error);
+            return { message: "Erro ao tentar atualizar um pedido", error };
+        }
+    }
+
+    async cancelPedido(id) {
+        try {
+            const pedido = await Pedido.findByPk(id);
+
+            if (!pedido) {
+                return { success: false, message: "Pedido não encontrado." };
+            }
+
+            // Atualiza apenas a situação
+            pedido.situacaoPedido = 'cancelado';
+            await pedido.save();
+
+            return {
+                success: true,
+                message: `Pedido #${id} foi cancelado com sucesso.`,
+                pedido
+            };
+        } catch (error) {
+            console.error("Erro ao cancelar pedido:", error);
+            throw new Error("Erro interno ao processar o cancelamento.");
         }
     }
 }

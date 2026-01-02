@@ -1,8 +1,4 @@
-import FormaPagamento from "../models/formaPagamentoModels.js"
-import Pedido from "../models/pedidoModels.js"
-
-Pedido.belongsTo(FormaPagamento, { foreignKey: 'formaPagamento_id' })
-FormaPagamento.hasMany(Pedido, { foreignKey: 'formaPagamento_id' })
+import { FormaPagamento, Pedido } from "../models/index.js";
 
 class FormaPagamentoController {
 

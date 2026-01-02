@@ -1,9 +1,18 @@
 import { Sequelize } from "sequelize";
+import dotenv from 'dotenv';
 
-const sequelize = new Sequelize('sistema-restaurante', 'ioshua', '81ioshua29', {
-    host: 'easypanel.ioshuavps.com.br',
-    dialect: 'postgres',
-    port: 2777
-});
+dotenv.config();
+
+const sequelize = new Sequelize(
+    process.env.DB_NAME, 
+    process.env.DB_USER, 
+    process.env.DB_PASS, 
+    {
+        host: process.env.DB_HOST,
+        dialect: process.env.DB_DIALECT,
+        port: process.env.DB_PORT,
+        logging: false,
+    }
+);
 
 export default sequelize;

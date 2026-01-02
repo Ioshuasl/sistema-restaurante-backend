@@ -1,11 +1,7 @@
-import Users from "../models/usermodels.js"
 import * as bcrypt from 'bcrypt'
-import Cargo from "../models/cargoModels.js";
 import jwt from 'jsonwebtoken'
 import { Op } from "sequelize";
-
-Users.belongsTo(Cargo, { foreignKey: 'cargo_id' });
-Cargo.hasMany(Users, { foreignKey: 'cargo_id' });
+import { Users, Cargo } from "../models/index.js";
 
 class UserController {
     //funcao para cadastrar usuario
@@ -171,6 +167,15 @@ class UserController {
             error.statusCode = 401;
             console.log(error)
             throw error;
+        }
+    }
+
+    async logoutUser() {
+        try {
+            return { message: "Logout realizado com sucesso. Remova o token do armazenamento local." };
+        } catch (error) {
+            console.error(error);
+            return { message: "Erro ao tentar realizar logout", error };
         }
     }
 }

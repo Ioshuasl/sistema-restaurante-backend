@@ -1,9 +1,5 @@
 // controller/subProdutoController.js
-import SubProduto from "../models/subProdutoModels.js";
-import Produto from "../models/produtoModels.js";
-
-Produto.hasMany(SubProduto, { foreignKey: "produto_id", onDelete: "CASCADE" });
-SubProduto.belongsTo(Produto, { foreignKey: "produto_id" });
+import { Produto, SubProduto } from "../models/index.js";
 
 class SubProdutoController {
   // criar subproduto vinculado a um produto
