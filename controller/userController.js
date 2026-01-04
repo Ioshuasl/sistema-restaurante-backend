@@ -7,8 +7,6 @@ class UserController {
     //funcao para cadastrar usuario
     async createUser({ nome, cargo_id, username, password }) {
 
-        console.log("senha sem criptografia: ", password)
-
         try {
 
             const existingUser = await Users.findOne({
@@ -29,10 +27,8 @@ class UserController {
 
             const saltRounds = 10
             const hashedPassword = await bcrypt.hash(password, saltRounds)
-            console.log("senha criptografada: ", hashedPassword)
 
             const user = await Users.create({ nome, cargo_id, username, password: hashedPassword })
-            console.log(user)
             return { message: 'Usuário criado com sucesso', user }
         } catch (error) {
             console.error(error)
@@ -82,7 +78,6 @@ class UserController {
             const updatedUser = await Users.findByPk(id, {
                 include: [Cargo]
             });
-            console.log(user)
             return {
                 message: 'Usuário atualizado com sucesso',
                 user,
@@ -111,14 +106,12 @@ class UserController {
 
     //funcao de login do usuario
     async loginUser(username, password) {
-        console.log("chamando a função de login de usuário")
         try {
             // Encontra o usuário e seu cargo
             const user = await Users.findOne({
                 where: { username },
                 include: [Cargo]
             });
-            console.log(user)
 
             if (!user) {
                 throw new Error("Credenciais inválidas");
@@ -126,7 +119,6 @@ class UserController {
 
             const isPasswordMatch = await bcrypt.compare(password, user.password);
 
-            console.log("passowrd match? ", isPasswordMatch)
 
             if (!isPasswordMatch) {
                 throw new Error("Credenciais inválidas");
@@ -165,7 +157,7 @@ class UserController {
 
         } catch (error) {
             error.statusCode = 401;
-            console.log(error)
+            console.error(error)
             throw error;
         }
     }

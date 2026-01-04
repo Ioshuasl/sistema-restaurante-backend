@@ -75,7 +75,6 @@ class PedidoController {
                 const precoProduto = Number(produto.valorProduto);
                 const subtotalProduto = precoProduto * item.quantidade;
                 valorTotalCalculado += subtotalProduto;
-                console.log(valorTotalCalculado)
 
                 const itemPedido = await ItemPedido.create({
                     pedidoId: pedido.id,
@@ -96,7 +95,6 @@ class PedidoController {
                         const precoSub = Number(subProduto.valorAdicional) || 0;
                         const subtotalSub = precoSub * sub.quantidade;
                         valorTotalCalculado += subtotalSub;
-                        console.log(valorTotalCalculado)
 
                         await SubItemPedido.create({
                             itemPedidoId: itemPedido.id,
@@ -109,7 +107,6 @@ class PedidoController {
             }
 
             // 6. Adiciona taxa de entrega
-            console.log("Valor da entrega", taxaEntrega, "Tipo do atributo taxa de entrega", typeof (taxaEntrega))
             valorTotalCalculado += Number(taxaEntrega);
 
             // 7. Atualiza total do pedido
@@ -277,7 +274,6 @@ class PedidoController {
                     ]
                 }]
             })
-            console.log(pedidos)
             return pedidos
         } catch (error) {
             console.error(error)
@@ -415,7 +411,6 @@ class PedidoController {
 
                 if (config?.evolutionInstanceName) {
                     const mensagens = [
-                        `Olá ${pedido.nomeCliente}`,
                         `⏳ *Tempo de espera do seu pedido estimado:* ${tempoEspera}`
                     ];
 
