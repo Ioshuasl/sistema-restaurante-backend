@@ -32,5 +32,10 @@ export const updateConfigSchema = yup.object({
 
     taxaEntrega: yup.number()
         .min(0, "A taxa de entrega não pode ser um valor negativo."),
-    menuLayout: yup.string()
+    menuLayout: yup.string(),
+    primaryColor: yup.string(),
+    fontFamily: yup.string(),
+    borderRadius: yup.string(),
+    showBanner: yup.boolean(),
+    bannerImage: yup.string().nullable()
 });

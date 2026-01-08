@@ -27,6 +27,11 @@ class ConfigController {
                     urlAgenteImpressao: "http://localhost:4000",
                     nomeImpressora: "Microsoft Print to PDF",
                     menuLayout: 'modern',
+                    primaryColor: '#dc2626',
+                    fontFamily: 'sans',
+                    borderRadius: '16px',
+                    showBanner: false,
+                    bannerImage: null
                 }
             });
 

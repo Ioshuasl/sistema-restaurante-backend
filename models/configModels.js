@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../config/database.js"; // Ajuste o caminho se necessário
+import sequelize from "../config/database.js";
 
 const Config = sequelize.define('config', {
     id: {
@@ -9,35 +9,23 @@ const Config = sequelize.define('config', {
         allowNull: false
     },
     cnpj: {
-        type: DataTypes.STRING(18), // Ex: "00.000.000/0000-00"
+        type: DataTypes.STRING(18),
         allowNull: false,
-        unique: true, // Garante que não haja outra configuração com o mesmo CNPJ
-        validate: {
-            notEmpty: {
-                msg: "O CNPJ não pode ser vazio."
-            }
-        }
+        unique: true,
+        validate: { notEmpty: { msg: "O CNPJ não pode ser vazio." } }
     },
     razaoSocial: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: {
-            notEmpty: {
-                msg: "A Razão Social não pode ser vazia."
-            }
-        }
+        validate: { notEmpty: { msg: "A Razão Social não pode ser vazia." } }
     },
     nomeFantasia: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: {
-            notEmpty: {
-                msg: "O Nome Fantasia não pode ser vazio."
-            }
-        }
+        validate: { notEmpty: { msg: "O Nome Fantasia não pode ser vazio." } }
     },
     cep: {
-        type: DataTypes.STRING(9), // Formato "00000-000"
+        type: DataTypes.STRING(9),
         allowNull: false
     },
     tipoLogadouro: {
@@ -55,11 +43,11 @@ const Config = sequelize.define('config', {
     },
     quadra: {
         type: DataTypes.STRING,
-        allowNull: true // Campos como quadra e lote podem não ser aplicáveis a todos os endereços
+        allowNull: true
     },
     lote: {
         type: DataTypes.STRING,
-        allowNull: true // Permitir nulo para maior flexibilidade
+        allowNull: true
     },
     bairro: {
         type: DataTypes.STRING,
@@ -70,57 +58,72 @@ const Config = sequelize.define('config', {
         allowNull: false
     },
     estado: {
-        type: DataTypes.STRING(2), //UF (ex: "GO", "SP")
+        type: DataTypes.STRING(2),
         allowNull: false
     },
     telefone: {
-        type: DataTypes.STRING(15), // Formato "(00) 00000-0000"
+        type: DataTypes.STRING(15),
         allowNull: false
     },
     email: {
         type: DataTypes.STRING,
         allowNull: false,
-        validate: {
-            isEmail: {
-                msg: "Por favor, insira um formato de e-mail válido."
-            }
-        }
+        validate: { isEmail: { msg: "E-mail inválido." } }
     },
     taxaEntrega: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
-        defaultValue: 0.00,
-        validate: {
-            isDecimal: true,
-            min: 0
-        }
+        defaultValue: 0.00
     },
     evolutionInstanceName: {
         type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: '',
-        validate: {
-            notEmpty: {
-                msg: "O nome da instância da Evolution API não pode ser vazio."
-            }
-        }
+        defaultValue: ''
     },
     urlAgenteImpressao: {
         type: DataTypes.STRING,
-        allowNull: true,
-        comment: "URL base do agente local de impressão (ex: http://192.168.0.105:4000)"
+        allowNull: true
     },
-        nomeImpressora: {
+    nomeImpressora: {
         type: DataTypes.STRING,
-        allowNull: true, // Pode começar nulo até o usuário configurar
-        comment: "Nome da impressora local detectada pelo agente de impressão"
+        allowNull: true
     },
+    // --- CAMPOS DE APARÊNCIA E LAYOUT ---
     menuLayout: {
         type: DataTypes.ENUM('modern', 'compact', 'minimalist'),
         allowNull: false,
-        defaultValue: 'modern',
-        comment: "Define o estilo visual do cardápio público"
+        defaultValue: 'modern'
     },
+    primaryColor: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: '#dc2626', // Vermelho padrão
+        validate: {
+            is: /^#([0-9a-f]{3}){1,2}$/i // Valida se é um código Hexadecimal
+        }
+    },
+    fontFamily: {
+        type: DataTypes.ENUM('sans', 'serif', 'mono', 'poppins'),
+        allowNull: false,
+        defaultValue: 'sans'
+    },
+    borderRadius: {
+        type: DataTypes.ENUM('0px', '8px', '16px', '9999px'),
+        allowNull: false,
+        defaultValue: '16px'
+    },
+    showBanner: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    bannerImage: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+            isUrl: true // Opcional: Garante que seja uma URL válida se preenchido
+        }
+    }
 }, {
     tableName: 'config',
     timestamps: true
