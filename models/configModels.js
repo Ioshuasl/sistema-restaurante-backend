@@ -110,11 +110,16 @@ const Config = sequelize.define('config', {
         allowNull: true,
         comment: "URL base do agente local de impressão (ex: http://192.168.0.105:4000)"
     },
-
         nomeImpressora: {
         type: DataTypes.STRING,
         allowNull: true, // Pode começar nulo até o usuário configurar
         comment: "Nome da impressora local detectada pelo agente de impressão"
+    },
+    menuLayout: {
+        type: DataTypes.ENUM('modern', 'compact', 'minimalist'),
+        allowNull: false,
+        defaultValue: 'modern',
+        comment: "Define o estilo visual do cardápio público"
     },
 }, {
     tableName: 'config',

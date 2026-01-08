@@ -25,8 +25,8 @@ class ConfigController {
                     taxaEntrega: 0.00,
                     evolutionInstanceName: 'Nome da sua Instancia da Evolution Api',
                     urlAgenteImpressao: "http://localhost:4000",
-                    nomeImpressora: "Microsoft Print to PDF"
-                    
+                    nomeImpressora: "Microsoft Print to PDF",
+                    menuLayout: 'modern',
                 }
             });
 

@@ -19,7 +19,7 @@ const includeGruposEopcoes = {
 class ProdutoController {
 
     // --- FUNÇÃO createProduto REFATORADA E CORRIGIDA ---
-    async createProduto(nomeProduto, valorProduto, image, isAtivo, categoriaProduto_id, gruposOpcoes = []) {
+    async createProduto(nomeProduto, descricao, valorProduto, image, isAtivo, categoriaProduto_id, gruposOpcoes = []) {
         
         // Inicia uma transação
         const t = await sequelize.transaction();
@@ -36,6 +36,7 @@ class ProdutoController {
             const produto = await Produto.create({
                 nomeProduto,
                 valorProduto,
+                descricao,
                 image,
                 isAtivo,
                 categoriaProduto_id

@@ -31,5 +31,6 @@ export const updateConfigSchema = yup.object({
         .email("O formato do e-mail é inválido."),
 
     taxaEntrega: yup.number()
-        .min(0, "A taxa de entrega não pode ser um valor negativo.")
+        .min(0, "A taxa de entrega não pode ser um valor negativo."),
+    menuLayout: yup.string()
 });

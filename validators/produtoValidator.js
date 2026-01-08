@@ -25,6 +25,7 @@ const grupoOpcaoSchema = yup.object({
 // Esquema para criar um produto
 export const createProdutoSchema = yup.object({
     nomeProduto: yup.string().required("O nome do produto é obrigatório.").min(3),
+    descricao: yup.string().optional(),
     valorProduto: yup.number().required("O valor é obrigatório.").positive(),
     image: yup.string().required("A imagem do produto é obrigatória."),
     isAtivo: yup.boolean().default(true),
@@ -39,6 +40,7 @@ export const createProdutoSchema = yup.object({
 // Esquema para atualizar um produto
 export const updateProdutoSchema = yup.object({
     nomeProduto: yup.string().min(3),
+    descricao: yup.string().optional(),
     valorProduto: yup.number().positive(),
     image: yup.string(),
     isAtivo: yup.boolean(),
