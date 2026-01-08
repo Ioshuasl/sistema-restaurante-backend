@@ -1,4 +1,4 @@
-import { CategoriaProduto, Produto, SubProduto } from "../models/index.js";
+import { CategoriaProduto, Produto, SubProduto, GrupoOpcao } from "../models/index.js";
 
 
 class CategoriaProdutoController {
@@ -21,7 +21,20 @@ class CategoriaProdutoController {
             const categoriaProdutos = await CategoriaProduto.findAll({
                 include: [{
                     model: Produto,          
-                    include: [SubProduto]
+                    include: {
+                        model: GrupoOpcao,
+                        as: 'gruposOpcoes', // O 'as' deve bater com a associação
+                        required: false,   
+                        
+                        include: {
+                            model: SubProduto,
+                            as: 'opcoes', // O 'as' deve bater com a associação
+                            where: {
+                                isAtivo: true 
+                            },
+                            required: false 
+                        }
+                    }
                 }]
             })
             return categoriaProdutos
