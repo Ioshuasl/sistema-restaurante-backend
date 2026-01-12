@@ -1,15 +1,9 @@
 // functions/automatic-print.js
 import axios from "axios";
-import Produto from "../models/produtoModels.js";
-import SubProduto from "../models/subProdutoModels.js";
 import Config from "../models/configModels.js";
 import FormaPagamento from "../models/formaPagamentoModels.js";
 
-export async function sendToAutomaticPrint(
-    pedido,
-    produtosPedido,
-    taxaEntrega = 0
-) {
+export async function sendToAutomaticPrint(pedido, produtosPedido = [], taxaEntrega = 0) {
     try {
         const config = await Config.findOne();
         if (!config || !config.urlAgenteImpressao || !config.nomeImpressora) {
@@ -18,60 +12,75 @@ export async function sendToAutomaticPrint(
         }
 
         const { nomeImpressora, urlAgenteImpressao, razaoSocial, cnpj } = config;
-        const formaPagamento = await FormaPagamento.findByPk(pedido.formaPagamento_id);
+        
+        // Busca o nome da forma de pagamento pelo ID (já que o JSON só traz o ID)
+        const formaPagamentoModel = await FormaPagamento.findByPk(pedido.formaPagamento_id);
+        const nomeFormaPagamento = formaPagamentoModel ? formaPagamentoModel.nomeFormaPagamento : "Não informada";
+
         const subtotal = parseFloat(pedido.valorTotalPedido) - parseFloat(taxaEntrega);
+
+        // Formata o endereço se for entrega
+        let enderecoEntrega = null;
+        if (!pedido.isRetiradaEstabelecimento) {
+            enderecoEntrega = {
+                logadouro: pedido.logadouroCliente,
+                numero: pedido.numeroCliente,
+                bairro: pedido.bairroCliente,
+                cidade: pedido.cidadeCliente,
+                estado: pedido.estadoCliente,
+                cep: pedido.cepCliente,
+                complemento: pedido.complementoCliente
+            };
+        }
+
+        // Mapeamento dos itens baseado na NOVA estrutura JSON (pedido.itensPedido)
+        // Nota: Se 'produtosPedido' vier vazio, usamos 'pedido.itensPedido' que é a nova estrutura
+        const listaItens = pedido.itensPedido || [];
+
+        const itensFormatados = listaItens.map((item) => {
+            // Mapeia os subitens (adicionais)
+            const subItens = (item.subItensPedido || []).map((sub) => {
+                return {
+                    nome: sub.subproduto ? sub.subproduto.nomeSubProduto : "Adicional",
+                    quantidade: sub.quantidade,
+                    valor: parseFloat(sub.precoAdicional || 0),
+                };
+            });
+
+            return {
+                produto: item.produto ? item.produto.nomeProduto : "Item não identificado",
+                quantidade: item.quantidade,
+                valor: parseFloat(item.precoUnitario || 0),
+                observacaoItem: item.observacaoItem || "",
+                subItens: subItens,
+            };
+        });
 
         const pedidoData = {
             printerName: nomeImpressora,
             id: pedido.id,
             createdAt: pedido.createdAt,
+            tipoEntrega: pedido.isRetiradaEstabelecimento ? "RETIRADA" : "ENTREGA",
             cliente: {
                 nome: pedido.nomeCliente,
                 telefone: pedido.telefoneCliente,
+                endereco: enderecoEntrega // Novo campo de objeto
             },
             empresa: {
                 razaoSocial: razaoSocial || "Nome da Empresa",
                 cnpj: cnpj || "00.000.000/0000-00",
             },
-            // Observação Geral do Pedido
-            observacaoGeral: pedido.observacao || "Sem observações",
-            itens: await Promise.all(
-                produtosPedido.map(async (item) => {
-                    const produto = await Produto.findByPk(item.produtoId);
-                    if (!produto) return null;
-
-                    const subItens = await Promise.all(
-                        item.subProdutos.map(async (sub) => {
-                            const subProduto = await SubProduto.findByPk(sub.subProdutoId);
-                            return subProduto
-                                ? {
-                                    nome: subProduto.nomeSubProduto,
-                                    quantidade: sub.quantidade,
-                                    valor: parseFloat(subProduto.valorAdicional),
-                                }
-                                : null;
-                        })
-                    );
-
-                    return {
-                        produto: produto.nomeProduto,
-                        quantidade: item.quantidade,
-                        valor: parseFloat(produto.valorProduto),
-                        // --- CAMPO ADICIONADO AQUI ---
-                        // Captura a observação específica que o cliente deixou para este item
-                        observacaoItem: item.observacaoItem || "", 
-                        // -----------------------------
-                        subItens: subItens.filter(Boolean),
-                    };
-                })
-            ).then(items => items.filter(Boolean)),
+            observacaoGeral: pedido.observacao || "",
+            itens: itensFormatados,
             totais: {
                 subtotal: subtotal,
                 taxaEntrega: parseFloat(taxaEntrega),
                 valorTotal: parseFloat(pedido.valorTotalPedido),
             },
-            formaPagamento: formaPagamento ? formaPagamento.nomeFormaPagamento : "Não informada",
+            formaPagamento: nomeFormaPagamento,
         };
+
+        console.log("Enviando dados para impressão automática:", JSON.stringify(pedidoData, null, 2));
 
         try {
             await axios.post(`${urlAgenteImpressao}/print`, pedidoData, {
@@ -80,7 +89,7 @@ export async function sendToAutomaticPrint(
                     'ngrok-skip-browser-warning': 'true'
                 }
             });
-            console.log(`🖨️ Cupom do Pedido #${pedido.id} enviado com observações por item.`);
+            console.log(`🖨️ Cupom do Pedido #${pedido.id} enviado para o agente.`);
         } catch (error) {
             console.error("Erro no agente de impressão:", error.message);
         }

@@ -4,6 +4,17 @@ class ConfigController {
 
     // Função para encontrar ou criar a configuração/parâmetros do sistema
     async getOrCreateConfig(id) {
+
+        const defaultHorarios = [
+                { dia: 0, aberto: true, inicio: "08:00", fim: "22:00" },
+                { dia: 1, aberto: true, inicio: "08:00", fim: "22:00" },
+                { dia: 2, aberto: true, inicio: "08:00", fim: "22:00" },
+                { dia: 3, aberto: true, inicio: "08:00", fim: "22:00" },
+                { dia: 4, aberto: true, inicio: "08:00", fim: "22:00" },
+                { dia: 5, aberto: true, inicio: "08:00", fim: "22:00" },
+                { dia: 6, aberto: true, inicio: "08:00", fim: "22:00" }
+            ];
+
         try {
             const [config, created] = await Config.findOrCreate({
                 where: { id: id },
@@ -31,7 +42,8 @@ class ConfigController {
                     fontFamily: 'sans',
                     borderRadius: '16px',
                     showBanner: false,
-                    bannerImage: null
+                    bannerImage: null,
+                    horariosFuncionamento: defaultHorarios
                 }
             });
 

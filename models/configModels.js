@@ -123,7 +123,21 @@ const Config = sequelize.define('config', {
         validate: {
             isUrl: true // Opcional: Garante que seja uma URL válida se preenchido
         }
-    }
+    },
+    horariosFuncionamento: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: [
+            { dia: 0, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 1, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 2, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 3, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 4, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 5, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 6, aberto: true, inicio: "08:00", fim: "22:00" }
+        ],
+        comment: "Armazena o array de objetos com os horários de cada dia da semana"
+    },
 }, {
     tableName: 'config',
     timestamps: true
