@@ -118,7 +118,7 @@ class PedidoController {
 
             // 9. Envia pedido para impressão
             try {
-                await sendToAutomaticPrint(pedido, produtosPedido, taxaEntrega)
+                await this.printPedido(pedido.id)
             } catch (error) {
                 console.error("Erro na chamada de impressão:", error);
             }
@@ -142,14 +142,20 @@ class PedidoController {
                     const telefoneFormatado = formatTelefone(telefoneCliente)
 
                     // Enviar mensagem
-                    await sendMessageWhatsapp(
+                    sendMessageWhatsapp(
                         process.env.EVOLUTION_API_URL,
                         config.evolutionInstanceName,
                         process.env.EVOLUTION_API_KEY,
                         telefoneFormatado,
                         mensagens,
                         2000 // delay de 2 segundos entre mensagens
-                    );
+                    )
+                    .then(() => {
+                        console.log(`Mensagem WhatsApp enviada para o cliente ${telefoneCliente} sobre o pedido #${pedido.id}`);
+                    })
+                    .catch(err => {
+                        console.error("Erro ao enviar mensagem WhatsApp:", err.message);
+                    });
                 }
             } catch (err) {
                 // Log de erro, mas não impacta a resposta do pedido

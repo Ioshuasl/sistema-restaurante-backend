@@ -110,7 +110,7 @@ const Config = sequelize.define('config', {
         allowNull: true,
         comment: "URL base do agente local de impressão (ex: http://192.168.0.105:4000)"
     },
-        nomeImpressora: {
+    nomeImpressora: {
         type: DataTypes.STRING,
         allowNull: true, // Pode começar nulo até o usuário configurar
         comment: "Nome da impressora local detectada pelo agente de impressão"
@@ -120,6 +120,20 @@ const Config = sequelize.define('config', {
         allowNull: false,
         defaultValue: 'modern',
         comment: "Define o estilo visual do cardápio público"
+    },
+    horariosFuncionamento: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: [
+            { dia: 0, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 1, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 2, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 3, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 4, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 5, aberto: true, inicio: "08:00", fim: "22:00" },
+            { dia: 6, aberto: true, inicio: "08:00", fim: "22:00" }
+        ],
+        comment: "Armazena o array de objetos com os horários de cada dia da semana"
     },
 }, {
     tableName: 'config',
