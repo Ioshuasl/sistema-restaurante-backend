@@ -133,9 +133,7 @@ class PedidoController {
                 } else {
                     // Montar mensagem para o cliente
                     const mensagens = [
-                        `Olá ${nomeCliente}, seu pedido foi criado com sucesso!`,
-                        `Número do pedido: ${pedido.id}`,
-                        `Valor total: R$ ${valorTotalCalculado.toFixed(2)}`,
+                        `Olá ${nomeCliente}, pedido #${pedido.id} no valor de R$ ${valorTotalCalculado.toFixed(2)} foi criado com sucesso!`,
                         `Obrigado pela preferência! 🍽️`
                     ];
 
@@ -480,7 +478,6 @@ class PedidoController {
                         const mensagens = [
                             mensagemStatus,
                             updatedData.tempoEspera ? `⏳ *Tempo de espera estimado:* ${updatedData.tempoEspera}` : "",
-                            `Obrigado pela paciência! ✨`
                         ].filter(m => m !== ""); // Remove linhas vazias
 
                         const telefoneFormatado = formatTelefone(pedido.telefoneCliente);

@@ -12,7 +12,6 @@ userRoutes.use(cors())
 
 // Rota para processar o login
 userRoutes.post('/login', validate(loginSchema), async (req, res) => {
-    console.log(req.body)
     const { username, password } = req.body; // Obtém os dados do formulário
 
     try {
@@ -36,7 +35,6 @@ userRoutes.post('/logout', authenticateToken, async (req, res) => {
 
 // Rota para criar o primeiro usuário
 userRoutes.post('/first-user', validate(createUserSchema), async (req, res) => {
-    console.log(req.body)
     const { nome, cargo_id, username, password } = req.body
 
     try {

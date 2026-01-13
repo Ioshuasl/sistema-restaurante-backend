@@ -10,6 +10,7 @@ import menuRoutes from './menuRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
 import subProdutoRoutes from './subProdutoRoutes.js';
+import webhookRoutes from './webhookRoutes.js';
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use(menuRoutes);
 router.use(uploadRoutes);
 router.use(dashboardRoutes);
 router.use(subProdutoRoutes);
+router.use('/webhook', webhookRoutes);
 
 export default router;
