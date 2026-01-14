@@ -39,41 +39,42 @@ const Pedido = sequelize.define('pedidos', {
     },
     //dados relacionados ao endereço de entrega do cliente
     cepCliente: {
-        type: DataTypes.STRING(9), // Formato "00000-000"
-        allowNull: false
+        type: DataTypes.STRING(9),
+        allowNull: true // Alterado de false para true
     },
     tipoLogadouroCliente: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true, // Alterado de false para true
         defaultValue: 'Rua'
     },
-    logadouroCliente: {
+    logadouroCliente: { // Aproveite para corrigir a grafia se quiser (Logradouro)
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true // Alterado de false para true
     },
     numeroCliente: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true // Alterado de false para true
     },
     quadraCliente: {
         type: DataTypes.STRING,
-        allowNull: true // Campos como quadra e lote podem não ser aplicáveis a todos os endereços
+        allowNull: true // Alterado de false para true
     },
     loteCliente: {
         type: DataTypes.STRING,
-        allowNull: true // Permitir nulo para maior flexibilidade
+        allowNull: true // Alterado de false para true
     },
+    // Quadra e Lote já eram true, mantêm-se assim
     bairroCliente: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true // Alterado de false para true
     },
     cidadeCliente: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true // Alterado de false para true
     },
     estadoCliente: {
-        type: DataTypes.STRING(2), //UF (ex: "GO", "SP")
-        allowNull: false
+        type: DataTypes.STRING(2),
+        allowNull: true // Alterado de false para true
     },
     tempoEspera: {
         type: DataTypes.STRING,
