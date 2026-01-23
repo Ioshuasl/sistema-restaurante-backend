@@ -31,8 +31,6 @@ pedidoRoutes.post('/pedido', validate(createPedidoSchema), async (req, res) => {
         observacao
     } = req.body
 
-    console.log(req.body)
-
     try {
         const pedido = await pedidoController.createPedido({
             produtosPedido,

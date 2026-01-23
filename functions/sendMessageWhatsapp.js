@@ -12,7 +12,6 @@ import axios from "axios";
  */
 export async function sendMessageWhatsapp(url, instanceName, apikey, numero, mensagens, delay = 0) {
   if (!Array.isArray(mensagens) || mensagens.length === 0) {
-    console.log(mensagens)
     console.error("O parâmetro 'mensagens' deve ser um array com pelo menos uma mensagem.");
     return;
   }
@@ -37,9 +36,6 @@ export async function sendMessageWhatsapp(url, instanceName, apikey, numero, men
           },
         }
       );
-
-      console.log(`✅ Mensagem ${i + 1}/${mensagens.length} enviada com sucesso!`);
-      console.log(response.data);
 
       // Se houver mais mensagens e delay for maior que 0, aguarda o tempo definido
       if (i < mensagens.length - 1 && tempoDelay > 0) {

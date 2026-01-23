@@ -122,8 +122,6 @@ class UserController {
 
             if (!isPasswordMatch) {
                 throw new Error("Credenciais inválidas");
-            } else {
-                console.log("Senha correta")
             }
 
 

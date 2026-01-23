@@ -42,8 +42,31 @@ class PedidoController {
                 throw new Error("O pedido deve conter pelo menos um produto.");
             }
 
+            // --- LÓGICA DO NÚMERO DIÁRIO (NOVA) ---
+
+            // 1. Definir o início e fim do dia atual
+            const hoje = new Date();
+            const inicioDoDia = new Date(hoje.setHours(0, 0, 0, 0));
+            const fimDoDia = new Date(hoje.setHours(23, 59, 59, 999));
+
+            // 2. Buscar o último pedido feito hoje para pegar o maior número
+            const ultimoPedidoDoDia = await Pedido.findOne({
+                where: {
+                    createdAt: {
+                        [Op.between]: [inicioDoDia, fimDoDia] // Busca entre 00:00 e 23:59
+                    }
+                },
+                order: [['numeroDiario', 'DESC']], // Pega o maior número
+                transaction: t,
+                lock: true // Opcional: Bloqueia leitura para evitar duplicidade em alta concorrência
+            });
+
+            // 3. Se tiver pedido hoje, soma +1. Se não, começa do 1.
+            const proximoNumero = ultimoPedidoDoDia ? ultimoPedidoDoDia.numeroDiario + 1 : 1;
+
             // 3. Criação do pedido principal
             const pedido = await Pedido.create({
+                numeroDiario: proximoNumero,
                 formaPagamento_id,
                 isRetiradaEstabelecimento,
                 situacaoPedido,
@@ -133,9 +156,21 @@ class PedidoController {
                 } else {
                     // Montar mensagem para o cliente
                     const mensagens = [
-                        `Olá ${nomeCliente}, pedido #${pedido.id} no valor de R$ ${valorTotalCalculado.toFixed(2)} foi criado com sucesso!`,
-                        `Obrigado pela preferência! 🍽️`
+                        `Olá ${nomeCliente}, seu pedido #${pedido.numeroDiario} foi criado com sucesso! 🧾`,
+                        `Valor total: R$ ${valorTotalCalculado.toFixed(2)}`
                     ];
+
+                    // Se a forma de pagamento for PIX (id = 2)
+                    if (formaPagamento_id === 2) {
+                        mensagens.push(
+                            `💳 *Pagamento via PIX*`,
+                            `Tipo de chave: ${config.tipoChavePix}`,
+                            `Chave PIX: ${config.chavePix}`,
+                            `Após o pagamento, envie o comprovante. ✅`
+                        );
+                    }
+
+                    mensagens.push(`Obrigado pela preferência! 🍽️`);
 
                     const telefoneFormatado = formatTelefone(telefoneCliente)
 
@@ -148,12 +183,12 @@ class PedidoController {
                         mensagens,
                         2000 // delay de 2 segundos entre mensagens
                     )
-                    .then(() => {
-                        console.log(`Mensagem WhatsApp enviada para o cliente ${telefoneCliente} sobre o pedido #${pedido.id}`);
-                    })
-                    .catch(err => {
-                        console.error("Erro ao enviar mensagem WhatsApp:", err.message);
-                    });
+                        .then(() => {
+                            console.log(`Mensagem WhatsApp enviada para o cliente ${telefoneCliente} sobre o pedido #${pedido.id}`);
+                        })
+                        .catch(err => {
+                            console.error("Erro ao enviar mensagem WhatsApp:", err.message);
+                        });
                 }
             } catch (err) {
                 // Log de erro, mas não impacta a resposta do pedido
@@ -448,57 +483,88 @@ class PedidoController {
     //funcao para atualizar pedido
     async updatePedido(updatedData, id) {
         try {
-            // 1. Busca o pedido antes de atualizar para ter os dados do cliente
+            // 1. Busca o pedido antes de atualizar
             const pedido = await Pedido.findByPk(id);
 
             if (!pedido) {
                 return { message: "Pedido não encontrado" };
             }
 
-            // 2. Realiza a atualização no banco
+            // 2. Realiza a atualização no banco (o objeto 'pedido' em memória é atualizado aqui)
             await pedido.update(updatedData);
 
-            // 3. Verifica se deve enviar notificação (Se tempoEspera ou situacaoPedido foram alterados)
-            if (updatedData.tempoEspera || updatedData.situacaoPedido) {
+            // 3. Verifica se deve enviar notificação
+            // Verificamos se houve mudança de situação OU tempo de espera
+            if (updatedData.situacaoPedido || updatedData.tempoEspera) {
                 try {
                     const config = await Config.findOne({ where: { id: 1 } });
 
+                    // Só prossegue se tiver configuração e instância ativa
                     if (config && config.evolutionInstanceName) {
-                        let mensagemStatus = "";
 
-                        // Lógica de mensagem baseada na situação
-                        if (pedido.situacaoPedido === 'preparando') {
-                            mensagemStatus = `Seu pedido está sendo preparado! 👨‍🍳`;
-                        } else if (pedido.situacaoPedido === 'entrega') {
-                            mensagemStatus = `Seu pedido saiu para entrega! 🚚`;
-                        } else if (pedido.situacaoPedido === 'cancelado') {
-                            mensagemStatus = `Seu pedido foi cancelado! ❌`;
+                        let mensagemStatus = "";
+                        const isRetirada = pedido.isRetiradaEstabelecimento; // Boolean
+
+                        // Lógica de mensagem baseada na Situação ATUAL do pedido
+                        switch (pedido.situacaoPedido) {
+                            case 'preparando':
+                                mensagemStatus = `Seu pedido está sendo preparado! 👨‍🍳`;
+                                break;
+
+                            case 'entrega':
+                                // Só envia mensagem de "Saiu para entrega" se NÃO for retirada
+                                if (!isRetirada) {
+                                    mensagemStatus = `Seu pedido saiu para entrega! 🚚`;
+                                }
+                                break;
+
+                            case 'finalizado':
+                                if (isRetirada) {
+                                    // MENSAGEM ESPECÍFICA PARA RETIRADA
+                                    mensagemStatus = `Seu pedido está pronto para retirada! 🛍️ Venha buscar no balcão.`;
+                                } else {
+                                    // Mensagem padrão para finalização de delivery
+                                    mensagemStatus = `Seu pedido foi entregue e finalizado. Bom apetite! 🍽️`;
+                                }
+                                break;
+
+                            case 'cancelado':
+                                mensagemStatus = `Seu pedido foi cancelado! ❌`;
+                                break;
                         }
 
-                        const mensagens = [
-                            mensagemStatus,
-                            updatedData.tempoEspera ? `⏳ *Tempo de espera estimado:* ${updatedData.tempoEspera}` : "",
-                        ].filter(m => m !== ""); // Remove linhas vazias
+                        // Se houver tempo de espera na atualização, adiciona à mensagem
+                        const mensagemTempo = updatedData.tempoEspera
+                            ? `⏳ *Tempo de espera estimado:* ${updatedData.tempoEspera}`
+                            : "";
 
-                        const telefoneFormatado = formatTelefone(pedido.telefoneCliente);
+                        // Filtra mensagens vazias (caso caia num case sem mensagem)
+                        const mensagens = [mensagemStatus, mensagemTempo].filter(m => m !== "");
 
-                        await sendMessageWhatsapp(
-                            process.env.EVOLUTION_API_URL,
-                            config.evolutionInstanceName,
-                            process.env.EVOLUTION_API_KEY,
-                            telefoneFormatado,
-                            mensagens,
-                            2000
-                        );
+                        if (mensagens.length > 0) {
+                            const telefoneFormatado = formatTelefone(pedido.telefoneCliente);
+
+                            sendMessageWhatsapp(
+                                process.env.EVOLUTION_API_URL,
+                                config.evolutionInstanceName,
+                                process.env.EVOLUTION_API_KEY,
+                                telefoneFormatado,
+                                mensagens,
+                                2000
+                            )
+                            .then(() => {console.log(`Notificação enviada para pedido #${pedido.id} (Status: ${pedido.situacaoPedido})`);})
+                            
+                        }
                     }
                 } catch (err) {
+                    // Log de erro de notificação não deve parar o fluxo de resposta da API
                     console.error("Erro ao enviar notificação de atualização:", err.message);
                 }
             }
 
             return { message: "Pedido atualizado com sucesso", pedido };
         } catch (error) {
-            console.error(error);
+            console.error("Erro no updatePedido:", error);
             return { message: "Erro ao tentar atualizar um pedido", error };
         }
     }

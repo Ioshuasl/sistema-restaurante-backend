@@ -34,6 +34,8 @@ class ConfigController {
                     telefone: '00000000000',
                     email: 'contato@suaempresa.com',
                     taxaEntrega: 0.00,
+                    tipoChavePix: 'cnpj',
+                    chavePix: '',
                     evolutionInstanceName: 'Nome da sua Instancia da Evolution Api',
                     urlAgenteImpressao: "http://localhost:4000",
                     nomeImpressora: "Microsoft Print to PDF",

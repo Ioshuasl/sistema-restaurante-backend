@@ -5,7 +5,6 @@ class CategoriaProdutoController {
 
     //funcao para criar categoria de produto
     async createCategoriaProduto(nomeCategoriaProduto) {
-        console.log(nomeCategoriaProduto)
         try {
             const categoriaProduto = await CategoriaProduto.create({ nomeCategoriaProduto })
             return { message: "Categoria de produto criado com sucesso", categoriaProduto }

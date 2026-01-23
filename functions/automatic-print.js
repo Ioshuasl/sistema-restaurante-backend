@@ -25,6 +25,8 @@ export async function sendToAutomaticPrint(pedido, produtosPedido = [], taxaEntr
             enderecoEntrega = {
                 logadouro: pedido.logadouroCliente,
                 numero: pedido.numeroCliente,
+                quadra: pedido.quadraCliente,
+                lote: pedido.loteCliente,
                 bairro: pedido.bairroCliente,
                 cidade: pedido.cidadeCliente,
                 estado: pedido.estadoCliente,
@@ -80,7 +82,6 @@ export async function sendToAutomaticPrint(pedido, produtosPedido = [], taxaEntr
             formaPagamento: nomeFormaPagamento,
         };
 
-        console.log("Enviando dados para impressão automática:", JSON.stringify(pedidoData, null, 2));
 
         try {
             await axios.post(`${urlAgenteImpressao}/print`, pedidoData, {
@@ -89,7 +90,6 @@ export async function sendToAutomaticPrint(pedido, produtosPedido = [], taxaEntr
                     'ngrok-skip-browser-warning': 'true'
                 }
             });
-            console.log(`🖨️ Cupom do Pedido #${pedido.id} enviado para o agente.`);
         } catch (error) {
             console.error("Erro no agente de impressão:", error.message);
         }

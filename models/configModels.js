@@ -75,6 +75,16 @@ const Config = sequelize.define('config', {
         allowNull: false,
         defaultValue: 0.00
     },
+    tipoChavePix: {
+        type: DataTypes.ENUM('cpf', 'cnpj', 'email', 'telefone', 'aleatoria'),
+        allowNull: true,
+        defaultValue: 'cnpj'
+    },
+    chavePix: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: ''
+    },
     evolutionInstanceName: {
         type: DataTypes.STRING,
         allowNull: false,

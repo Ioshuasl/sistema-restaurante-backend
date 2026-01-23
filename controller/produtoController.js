@@ -1,3 +1,4 @@
+
 import fs from 'fs/promises';
 import path from 'path';
 import { Sequelize, Op, fn, col, where, literal } from 'sequelize';
@@ -300,9 +301,7 @@ class ProdutoController {
         const produto = await Produto.findByPk(id)
 
         //verificando se o produto foi encontrado antes de fazer as alteracoes
-        if (produto) {
-            console.log("Produto encontrado, continua a funcao")
-        } else {
+        if (!produto) {
             return { message: "Produto nao encontrado no sistema" }
         }
 

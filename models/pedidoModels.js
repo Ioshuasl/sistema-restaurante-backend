@@ -9,6 +9,11 @@ const Pedido = sequelize.define('pedidos', {
         autoIncrement: true,
         allowNull: false
     },
+    numeroDiario: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 1 // Começa com 1 se falhar a lógica
+    },
     valorTotalPedido: {
         type: DataTypes.DECIMAL(10, 2), // DECIMAL é mais preciso para valores monetários que FLOAT.
         allowNull: false
