@@ -60,7 +60,7 @@ export async function sendToAutomaticPrint(pedido, produtosPedido = [], taxaEntr
 
         const pedidoData = {
             printerName: nomeImpressora,
-            id: pedido.id,
+            id: pedido.numeroDiario || pedido.id,
             createdAt: pedido.createdAt,
             tipoEntrega: pedido.isRetiradaEstabelecimento ? "RETIRADA" : "ENTREGA",
             cliente: {
