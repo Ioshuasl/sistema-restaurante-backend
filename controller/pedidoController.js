@@ -514,14 +514,14 @@ class PedidoController {
                             case 'entrega':
                                 // Só envia mensagem de "Saiu para entrega" se NÃO for retirada
                                 if (!isRetirada) {
-                                    mensagemStatus = `Seu pedido saiu para entrega! 🚚`;
+                                    mensagemStatus = `Seu pedido está em rota de entrega! 🚚`;
                                 }
                                 break;
 
                             case 'finalizado':
                                 if (isRetirada) {
                                     // MENSAGEM ESPECÍFICA PARA RETIRADA
-                                    mensagemStatus = `Seu pedido está pronto para retirada! 🛍️ Venha buscar no balcão.`;
+                                    mensagemStatus = `Seu pedido está pronto para retirada no balcão! 🥡.`;
                                 } else {
                                     // Mensagem padrão para finalização de delivery
                                     mensagemStatus = `Seu pedido foi entregue e finalizado. Bom apetite! 🍽️`;
