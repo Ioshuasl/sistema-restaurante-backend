@@ -115,8 +115,7 @@ export const handleIncomingMessage = async (req, res) => {
 
         mensagensParaEnviar = [
           `Desculpe, no momento não estamos em horário de atendimento.`,
-          `Estes são nossos horários de funcionamento:\n\n${listaHorarios}`,
-          `Mas não se preocupe! Você já pode ir escolhendo seus itens em nosso site para agilizar: https://gs-sabores.ioshuavps.com.br`
+          `Estes são nossos horários de funcionamento:\n\n${listaHorarios}`
         ];
         console.log(`🌙 Enviando AVISO DE FECHADO para ${cliente.nome || numeroApenasDigitos}...`);
       }
