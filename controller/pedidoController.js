@@ -180,8 +180,7 @@ class PedidoController {
                         config.evolutionInstanceName,
                         process.env.EVOLUTION_API_KEY,
                         telefoneFormatado,
-                        mensagens,
-                        2000 // delay de 2 segundos entre mensagens
+                        mensagens
                     )
                         .then(() => {
                             console.log(`Mensagem WhatsApp enviada para o cliente ${telefoneCliente} sobre o pedido #${pedido.id}`);
@@ -460,8 +459,7 @@ class PedidoController {
                         config.evolutionInstanceName,
                         process.env.EVOLUTION_API_KEY,
                         telefoneFormatado,
-                        mensagens,
-                        2000
+                        mensagens
                     );
                 }
             } catch (whatsappError) {
@@ -549,8 +547,7 @@ class PedidoController {
                                 config.evolutionInstanceName,
                                 process.env.EVOLUTION_API_KEY,
                                 telefoneFormatado,
-                                mensagens,
-                                2000
+                                mensagens
                             )
                             .then(() => {console.log(`Notificação enviada para pedido #${pedido.id} (Status: ${pedido.situacaoPedido})`);})
                             

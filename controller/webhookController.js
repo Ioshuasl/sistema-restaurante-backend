@@ -121,12 +121,11 @@ export const handleIncomingMessage = async (req, res) => {
       }
 
       await sendMessageWhatsapp(
-        process.env.EVOLUTION_API_URL, 
+        process.env.EVOLUTION_API_URL,
         config.evolutionInstanceName,
-        process.env.EVOLUTION_API_KEY, 
-        numeroApenasDigitos, 
-        mensagensParaEnviar, 
-        2000 
+        process.env.EVOLUTION_API_KEY,
+        numeroApenasDigitos,
+        mensagensParaEnviar
       );
       
       console.log(`✅ Resposta enviada com sucesso!`);
